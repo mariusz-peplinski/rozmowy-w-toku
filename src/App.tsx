@@ -187,6 +187,10 @@ function App() {
           onUpdated={(updated) => {
             setEditChatOpen(false)
             setChat(updated)
+            window.api.messages
+              .list({ chatId: updated.id, limit: 200 })
+              .then((next) => setMessages(next))
+              .catch(() => undefined)
             refreshChats().catch(() => undefined)
           }}
         />

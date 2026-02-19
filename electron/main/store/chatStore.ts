@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises'
+import path from 'node:path'
 import type {
   Chat,
   ChatId,
@@ -50,16 +51,72 @@ function isDeleteEvent(x: unknown): x is MessageDeleteEvent {
   return 'kind' in x && (x as { kind?: unknown }).kind === 'delete'
 }
 
-function ensureUniqueHandles(participants: Participant[]): Participant[] {
-  // Preserve existing handles when possible; only disambiguate collisions.
-  const used = new Map<string, number>()
-  return participants.map((p) => {
-    const base = p.handle?.trim() ? p.handle.trim() : slugifyHandle(p.displayName)
-    const count = used.get(base) ?? 0
-    used.set(base, count + 1)
-    const handle = count === 0 ? base : `${base}-${count + 1}`
-    return { ...p, handle }
-  })
+type MentionRewrite = {
+  oldHandle: string
+  oldDisplayName: string
+  newHandle: string
+  newDisplayName: string
+}
+
+type MentionTokenRewrite = {
+  token: string
+  tokenLower: string
+  replaceWith: string
+}
+
+function isBoundaryChar(ch: string): boolean {
+  return /\s|[([{'"`]|[.,;:!?]/.test(ch)
+}
+
+function rewriteMentionsInText(text: string, rewrites: MentionRewrite[]): string {
+  const tokenRewrites: MentionTokenRewrite[] = []
+  for (const r of rewrites) {
+    if (r.oldHandle && r.oldHandle !== r.newHandle) {
+      tokenRewrites.push({
+        token: `@${r.oldHandle}`,
+        tokenLower: `@${r.oldHandle}`.toLowerCase(),
+        replaceWith: `@${r.newHandle}`,
+      })
+    }
+    if (r.oldDisplayName.trim() && r.oldDisplayName !== r.newDisplayName) {
+      tokenRewrites.push({
+        token: `@${r.oldDisplayName.trim()}`,
+        tokenLower: `@${r.oldDisplayName.trim()}`.toLowerCase(),
+        replaceWith: `@${r.newDisplayName.trim()}`,
+      })
+    }
+  }
+
+  if (tokenRewrites.length === 0) return text
+  tokenRewrites.sort((a, b) => b.token.length - a.token.length)
+
+  const lower = text.toLowerCase()
+  let out = ''
+  let cursor = 0
+
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== '@') continue
+    if (i > 0 && !isBoundaryChar(text[i - 1]!)) continue
+
+    let matched: MentionTokenRewrite | null = null
+    for (const c of tokenRewrites) {
+      if (!lower.startsWith(c.tokenLower, i)) continue
+      const end = i + c.token.length
+      if (end < text.length && !isBoundaryChar(text[end]!)) continue
+      matched = c
+      break
+    }
+    if (!matched) continue
+
+    out += text.slice(cursor, i)
+    out += matched.replaceWith
+    i += matched.token.length - 1
+    cursor = i + 1
+  }
+
+  if (cursor === 0) return text
+  out += text.slice(cursor)
+  return out
 }
 
 export class ChatStore {
@@ -133,16 +190,29 @@ export class ChatStore {
   async updateChat(input: UpdateChatInput): Promise<Chat> {
     const existing = await this.getChat(input.chatId)
     const updatedAt = nowIso()
+    const normalizedParticipants = input.participants.map((p, i) => ({
+      ...p,
+      displayName: p.displayName.trim() || `Agent ${i + 1}`,
+    }))
+    const handles = uniqueHandles(normalizedParticipants)
+    const participants: Participant[] = normalizedParticipants.map((p, i) => ({
+      ...p,
+      handle: handles[i]!,
+    }))
 
-    // Keep handles stable for existing participants; for new ones, generate from displayName.
     const oldById = new Map(existing.participants.map((p) => [p.id, p]))
-    const withHandles: Participant[] = input.participants.map((p) => {
+    const rewrites: MentionRewrite[] = []
+    for (const p of participants) {
       const old = oldById.get(p.id)
-      if (old) return { ...p, handle: old.handle }
-      return { ...p, handle: slugifyHandle(p.displayName) }
-    })
-
-    const participants = ensureUniqueHandles(withHandles)
+      if (!old) continue
+      if (old.handle === p.handle && old.displayName === p.displayName) continue
+      rewrites.push({
+        oldHandle: old.handle,
+        oldDisplayName: old.displayName,
+        newHandle: p.handle,
+        newDisplayName: p.displayName,
+      })
+    }
 
     const next: Chat = {
       ...existing,
@@ -150,6 +220,10 @@ export class ChatStore {
       context: input.context,
       participants,
       updatedAt,
+    }
+
+    if (rewrites.length > 0) {
+      await this.rewriteMentionsInMessages(existing.id, rewrites)
     }
 
     await writeJsonFileAtomic(chatMetaFile(this.chatsRoot, existing.id), next)
@@ -220,5 +294,26 @@ export class ChatStore {
     if (!existing) return
     existing.updatedAt = updatedAt
     await this.writeIndex(idx)
+  }
+
+  private async rewriteMentionsInMessages(chatId: ChatId, rewrites: MentionRewrite[]): Promise<void> {
+    const file = chatMessagesFile(this.chatsRoot, chatId)
+    if (!(await pathExists(file))) return
+
+    const all = await readJsonlFile<Message | MessageDeleteEvent>(file)
+    let changed = false
+    const rewritten = all.map((item) => {
+      if (isDeleteEvent(item)) return item
+      const nextText = rewriteMentionsInText(item.text, rewrites)
+      if (nextText === item.text) return item
+      changed = true
+      return { ...item, text: nextText }
+    })
+    if (!changed) return
+
+    const tmp = path.join(path.dirname(file), `.${path.basename(file)}.tmp-${process.pid}-${Date.now()}`)
+    const raw = rewritten.map((line) => JSON.stringify(line)).join('\n') + '\n'
+    await fs.writeFile(tmp, raw, 'utf8')
+    await fs.rename(tmp, file)
   }
 }
