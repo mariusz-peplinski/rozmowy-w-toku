@@ -110,7 +110,7 @@ async function buildCommand(opts: {
       args.push('--dangerously-skip-permissions')
       // Default toolset; keep small. Users can expand later via app settings.
       args.push('--allowedTools', 'Bash,Read,Write')
-      if (roaming.workspaceDir) args.push('--cwd', roaming.workspaceDir)
+      // We set the workspace via child-process cwd for broad CLI version compatibility.
     } else {
       // "plan" avoids tool usage and keeps runs deterministic.
       args.push('--permission-mode', 'plan')

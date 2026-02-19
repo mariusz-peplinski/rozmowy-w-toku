@@ -3,6 +3,10 @@ import type { Chat, ChatIndexEntry, Message, ParticipantId } from '../../../shar
 import { DebugPanel } from '../debug/DebugPanel'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { visit } from 'unist-util-visit'
+import type { Content, Parent, Root } from 'mdast'
 
 type CssVars = React.CSSProperties & Record<`--${string}`, string>
 
@@ -17,6 +21,15 @@ type MentionOption = {
   label: string
   insertText: string
 }
+
+type MentionToken = {
+  raw: string
+  lower: string
+}
+
+type MentionSegment =
+  | { kind: 'text'; value: string }
+  | { kind: 'mention'; value: string }
 
 function participantColor(chat: Chat | null, authorId: ParticipantId | 'user'): string {
   if (authorId === 'user') return '#d9dde3'
@@ -44,13 +57,17 @@ function isBoundaryChar(ch: string): boolean {
   return /\s|[([{'"`]|[.,;:!?]/.test(ch)
 }
 
-function renderWithMentions(text: string, mentionTokens: string[]): React.ReactNode {
-  if (!text) return text
-  const tokens = mentionTokens.map((t) => ({ raw: t, lower: t.toLowerCase() }))
-  if (tokens.length === 0) return text
+function normalizeMentionTokens(mentionTokens: string[]): MentionToken[] {
+  return mentionTokens
+    .filter(Boolean)
+    .map((t) => ({ raw: t, lower: t.toLowerCase() }))
+    .sort((a, b) => b.raw.length - a.raw.length)
+}
 
+function splitMentionSegments(text: string, mentionTokens: MentionToken[]): MentionSegment[] {
+  if (!text || mentionTokens.length === 0) return [{ kind: 'text', value: text }]
   const lower = text.toLowerCase()
-  const chunks: React.ReactNode[] = []
+  const parts: MentionSegment[] = []
   let cursor = 0
   let i = 0
 
@@ -64,9 +81,11 @@ function renderWithMentions(text: string, mentionTokens: string[]): React.ReactN
       continue
     }
 
-    let matched: { raw: string; lower: string } | null = null
-    for (const t of tokens) {
+    let matched: MentionToken | null = null
+    for (const t of mentionTokens) {
       if (lower.startsWith(t.lower, i)) {
+        const end = i + t.raw.length
+        if (end < text.length && !isBoundaryChar(text[end]!)) continue
         matched = t
         break
       }
@@ -76,19 +95,43 @@ function renderWithMentions(text: string, mentionTokens: string[]): React.ReactN
       continue
     }
 
-    if (cursor < i) chunks.push(text.slice(cursor, i))
+    if (cursor < i) parts.push({ kind: 'text', value: text.slice(cursor, i) })
     const end = i + matched.raw.length
-    chunks.push(
-      <strong key={`m_${i}_${end}`} className="mentionText">
-        {text.slice(i, end)}
-      </strong>,
-    )
+    parts.push({ kind: 'mention', value: text.slice(i, end) })
     cursor = end
     i = end
   }
 
-  if (cursor < text.length) chunks.push(text.slice(cursor))
-  return chunks.length > 0 ? chunks : text
+  if (cursor < text.length) parts.push({ kind: 'text', value: text.slice(cursor) })
+  return parts.length > 0 ? parts : [{ kind: 'text', value: text }]
+}
+
+function createMentionRemarkPlugin(mentionTokens: string[]) {
+  const normalized = normalizeMentionTokens(mentionTokens)
+  return () => (tree: Root) => {
+    if (normalized.length === 0) return
+    visit(tree, 'text', (node, index, parent) => {
+      const parentNode = parent as Parent | undefined
+      if (typeof index !== 'number' || !parentNode) return
+      if (parentNode.type === 'link' || parentNode.type === 'inlineCode') return
+
+      const parts = splitMentionSegments((node.value as string) ?? '', normalized)
+      if (parts.length === 1 && parts[0]?.kind === 'text') return
+
+      const replaced: Content[] = parts.map((part) => {
+        if (part.kind === 'text') return { type: 'text', value: part.value }
+        return {
+          type: 'link',
+          url: `mention:${part.value.slice(1).toLowerCase()}`,
+          title: null,
+          children: [{ type: 'text', value: part.value }],
+        }
+      })
+
+      parentNode.children.splice(index, 1, ...replaced)
+      return index + replaced.length
+    })
+  }
 }
 
 export function ChatView(props: {
@@ -139,6 +182,7 @@ export function ChatView(props: {
     }
     return [...unique].sort((a, b) => b.length - a.length)
   }, [participants])
+  const mentionRemarkPlugin = useMemo(() => createMentionRemarkPlugin(mentionTokens), [mentionTokens])
   const filteredMentionOptions = useMemo(() => {
     if (!mentionQuery) return []
     const q = mentionQuery.query.toLowerCase()
@@ -397,7 +441,29 @@ export function ChatView(props: {
                   <div className="bubbleTs">{new Date(m.ts).toLocaleString()}</div>
                 </div>
               </div>
-              <div className="bubbleText">{renderWithMentions(m.text, mentionTokens)}</div>
+              <div className="bubbleText markdownBody">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, mentionRemarkPlugin]}
+                  components={{
+                    a: ({ href, children }) => {
+                      if (href?.startsWith('mention:')) return <span className="mentionTag">{children}</span>
+                      return (
+                        <a href={href} target="_blank" rel="noreferrer noopener">
+                          {children}
+                        </a>
+                      )
+                    },
+                    pre: ({ children }) => <pre className="mdPre">{children}</pre>,
+                    code: ({ className, children, ...props }) => (
+                      <code className={className ? `mdCode ${className}` : 'mdCode'} {...props}>
+                        {children}
+                      </code>
+                    ),
+                  }}
+                >
+                  {m.text}
+                </ReactMarkdown>
+              </div>
             </div>
           )
         })}

@@ -300,7 +300,7 @@ body {
 }
 
 .bubbleText {
-  white-space: pre-wrap;
+  white-space: normal;
   overflow-wrap: anywhere;
   line-height: 1.35;
   font-size: 13px;
@@ -311,8 +311,83 @@ body {
   color: #151922;
 }
 
-.mentionText {
+.markdownBody > *:first-child {
+  margin-top: 0;
+}
+
+.markdownBody > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdownBody p,
+.markdownBody ul,
+.markdownBody ol,
+.markdownBody blockquote,
+.markdownBody pre {
+  margin: 0 0 8px;
+}
+
+.markdownBody ul,
+.markdownBody ol {
+  padding-left: 18px;
+}
+
+.markdownBody li {
+  margin: 2px 0;
+}
+
+.markdownBody blockquote {
+  border-left: 3px solid color-mix(in srgb, var(--accent), transparent 60%);
+  padding-left: 10px;
+  color: var(--muted);
+}
+
+.markdownBody a {
+  color: color-mix(in srgb, var(--accent), white 18%);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mdPre {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel), var(--bg) 40%);
+  overflow-x: auto;
+}
+
+.mdCode {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: color-mix(in srgb, var(--panel), var(--bg) 32%);
+  border: 1px solid var(--stroke);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.mdPre .mdCode {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.mentionTag {
+  display: inline-block;
   font-weight: 800;
+  color: color-mix(in srgb, var(--accent), white 10%);
+  background: color-mix(in srgb, var(--accent), transparent 82%);
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 62%);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.bubbleMe .mentionTag {
+  color: #9b5e00;
+  background: #ffe9bf;
+  border-color: #e0ba76;
 }
 
 .composer {
