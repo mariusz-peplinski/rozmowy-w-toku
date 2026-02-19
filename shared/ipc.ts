@@ -14,10 +14,12 @@ export const IpcChannels = {
   ChatsUpdate: 'chats:update',
   MessagesList: 'messages:list',
   MessagesAppendUser: 'messages:appendUser',
+  MessagesAppended: 'messages:appended',
   MessagesDelete: 'messages:delete',
   AgentsRun: 'agents:run',
   AgentRunStatus: 'agents:runStatus',
   MentionsResume: 'mentions:resume',
+  MentionState: 'mentions:state',
   DialogPickDirectory: 'dialog:pickDirectory',
   DebugRunsList: 'debug:runs:list',
   DebugRunsClear: 'debug:runs:clear',
@@ -52,5 +54,7 @@ export interface RendererApi {
   }
   events: {
     onAgentRunStatus(cb: (evt: import('./types').AgentRunStatusEvent) => void): () => void
+    onMessageAppended(cb: (evt: import('./types').MessageAppendedEvent) => void): () => void
+    onMentionState(cb: (evt: import('./types').MentionStateEvent) => void): () => void
   }
 }

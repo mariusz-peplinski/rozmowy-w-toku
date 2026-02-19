@@ -11,7 +11,7 @@
   --ink: #ffffff;
   --ink-rgb: 255, 255, 255;
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-  --radius: 14px;
+  --radius: 8px;
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   --app-bg:
@@ -33,7 +33,7 @@
   --ink: #000000;
   --ink-rgb: 0, 0, 0;
   --shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
-  --radius: 14px;
+  --radius: 8px;
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   --app-bg:
@@ -54,6 +54,7 @@ body {
   background: var(--surface-main);
   display: grid;
   grid-template-columns: 320px 1fr;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -64,6 +65,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebarHeader {
@@ -97,7 +102,7 @@ body {
 }
 
 .chatItem {
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 10px 10px;
   background: color-mix(in srgb, var(--panel), var(--surface-main) 28%);
 }
@@ -123,6 +128,8 @@ body {
   flex-direction: column;
   min-width: 0;
   background: linear-gradient(180deg, color-mix(in srgb, var(--surface-main), var(--panel) 12%), var(--surface-main));
+  height: 100vh;
+  overflow: hidden;
 }
 
 .mobileBar {
@@ -132,6 +139,9 @@ body {
   background: var(--panel);
   justify-content: space-between;
   gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 7;
 }
 
 .mobileSidebar {
@@ -146,6 +156,9 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 6;
 }
 
 .mainHeaderTitle {
@@ -174,7 +187,7 @@ body {
 .pill {
   border: 3px solid var(--ink);
   background: var(--panel);
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 8px 10px;
   font-size: 12px;
   cursor: pointer;
@@ -207,7 +220,7 @@ body {
 
 .bubble {
   max-width: min(900px, 88%);
-  border-radius: 12px;
+  border-radius: 6px;
   border: 3px solid var(--ink);
   box-shadow: 4px 4px 0 0 rgba(var(--ink-rgb), 0.55);
   padding: 10px 12px;
@@ -216,9 +229,15 @@ body {
 
 .bubbleMe {
   align-self: flex-end;
-  border-color: color-mix(in srgb, var(--accent), black 12%);
-  box-shadow: 4px 4px 0 0 color-mix(in srgb, var(--accent), transparent 55%);
-  background: color-mix(in srgb, var(--panel), var(--accent) 24%);
+  border-color: #d9dee7;
+  box-shadow: 4px 4px 0 0 rgba(190, 198, 214, 0.6);
+  background: #f4f6fa;
+  color: #151922;
+}
+
+.bubbleMe .bubbleAuthor,
+.bubbleMe .bubbleTs {
+  color: #4d5666;
 }
 
 .bubbleHeader {
@@ -243,7 +262,7 @@ body {
   font-size: 12px;
   cursor: pointer;
   padding: 2px 6px;
-  border-radius: 8px;
+  border-radius: 6px;
   opacity: 0;
   transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
@@ -288,6 +307,14 @@ body {
   color: var(--text);
 }
 
+.bubbleMe .bubbleText {
+  color: #151922;
+}
+
+.mentionText {
+  font-weight: 800;
+}
+
 .composer {
   border-top: 3px solid var(--ink);
   padding: 14px 18px;
@@ -295,6 +322,37 @@ body {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
+}
+
+.mentionMenu {
+  grid-column: 1 / -1;
+  border: 3px solid var(--ink);
+  background: var(--panel);
+  box-shadow: 3px 3px 0 0 rgba(var(--ink-rgb), 0.35);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mentionMenuItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-top: 1px solid var(--stroke);
+  background: transparent;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mentionMenuItem:first-child {
+  border-top: 0;
+}
+
+.mentionMenuItem:hover,
+.mentionMenuItemActive {
+  background: color-mix(in srgb, var(--accent), transparent 82%);
 }
 
 .resumeBar {
@@ -306,7 +364,7 @@ body {
   border: 3px solid var(--ink);
   background: var(--panel);
   box-shadow: 3px 3px 0 0 rgba(var(--ink-rgb), 0.35);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 10px 12px;
 }
 
@@ -316,7 +374,7 @@ body {
   gap: 10px;
   align-items: center;
   padding: 8px 10px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 3px solid var(--ink);
   background: var(--panel);
   box-shadow: 3px 3px 0 0 rgba(var(--ink-rgb), 0.35);
@@ -411,7 +469,7 @@ body {
   height: 40px;
   padding: 0;
   border: 3px solid var(--ink);
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
 }
 
@@ -423,7 +481,7 @@ body {
 
 .agentCard {
   border: 3px solid var(--ink);
-  border-radius: 14px;
+  border-radius: 8px;
   background: var(--panel);
   box-shadow: 4px 4px 0 0 rgba(var(--ink-rgb), 0.35);
   padding: 12px;
@@ -461,7 +519,7 @@ body {
 .dangerBox {
   border: 3px solid #ef476f;
   background: color-mix(in srgb, var(--panel), #ef476f 14%);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 10px 12px;
   font-size: 12px;
   color: var(--text);
@@ -505,7 +563,7 @@ body {
 
 .debugRun {
   border: 3px solid var(--ink);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--panel);
   box-shadow: 3px 3px 0 0 rgba(var(--ink-rgb), 0.35);
   padding: 10px;
@@ -527,7 +585,7 @@ body {
 .debugBadge {
   font-size: 11px;
   padding: 4px 8px;
-  border-radius: 999px;
+  border-radius: 6px;
   border: 1px solid var(--stroke);
   color: var(--text);
 }
@@ -559,7 +617,7 @@ body {
   font-size: 12px;
   background: color-mix(in srgb, var(--panel), var(--bg) 40%);
   border: 2px solid var(--ink);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 10px 12px;
   margin: 0;
   white-space: pre-wrap;

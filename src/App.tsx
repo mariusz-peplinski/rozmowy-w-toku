@@ -6,6 +6,7 @@ import { ChatView } from './features/chats/ChatView'
 import { NewChatDialog } from './features/chats/NewChatDialog'
 import { EditChatDialog } from './features/chats/EditChatDialog'
 import { Button } from '@/components/ui/button'
+import { Moon, Sun } from 'lucide-react'
 
 type Theme = 'dark' | 'light'
 
@@ -71,6 +72,8 @@ function App() {
     refreshChats().catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [])
 
+  const ThemeIcon = theme === 'dark' ? Sun : Moon
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -80,8 +83,15 @@ function App() {
             <div className="brandSub">Local, multi-agent group chats</div>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <Button variant="outline" size="sm" onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}>
-              {theme === 'dark' ? 'Light' : 'Dark'}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            >
+              <ThemeIcon className="h-4 w-4" />
             </Button>
             <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
               New chat
@@ -102,8 +112,15 @@ function App() {
             Chats
           </Button>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <Button variant="outline" size="sm" onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}>
-              {theme === 'dark' ? 'Light' : 'Dark'}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            >
+              <ThemeIcon className="h-4 w-4" />
             </Button>
             <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
               New chat

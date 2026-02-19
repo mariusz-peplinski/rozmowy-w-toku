@@ -21,6 +21,12 @@ export function registerIpcHandlers(opts: {
       w.webContents.send(channel, payload)
     }
   }
+  const emitMessageAppended = (chatId: string, message: Message) => {
+    broadcast(IpcChannels.MessagesAppended, { chatId, message })
+  }
+  const emitMentionState = (chatId: string, mentionPaused: boolean, pendingMentionParticipantIds: string[] = []) => {
+    broadcast(IpcChannels.MentionState, { chatId, mentionPaused, pendingMentionParticipantIds })
+  }
 
   const agentService = new AgentService({
     userDataPath,
@@ -28,7 +34,12 @@ export function registerIpcHandlers(opts: {
     debugLogStore,
     onRunStatus: (evt) => broadcast(IpcChannels.AgentRunStatus, evt),
   })
-  const mentionEngine = new MentionEngine({ chatStore, agentService })
+  const mentionEngine = new MentionEngine({
+    chatStore,
+    agentService,
+    onMessageAppended: (chatId, message) => emitMessageAppended(chatId, message),
+    onMentionState: (chatId, paused, pendingParticipantIds) => emitMentionState(chatId, paused, pendingParticipantIds),
+  })
 
   ipcMain.handle(IpcChannels.ChatsList, async () => {
     return chatStore.listChats()
@@ -61,11 +72,17 @@ export function registerIpcHandlers(opts: {
       meta: { trigger: 'manual' },
     }
     await chatStore.appendMessage(chatId, msg)
-    const auto = await mentionEngine.runFromTriggerMessage(chatId, msg, 3)
+    emitMessageAppended(chatId, msg)
+    emitMentionState(chatId, false, [])
+    mentionEngine.runFromTriggerMessage(chatId, msg, 3).catch((err) => {
+      console.error('Mention engine failed after user message', err)
+      emitMentionState(chatId, false, [])
+    })
+
     const result: RunBatchResult = {
-      messages: [msg, ...auto.appended],
-      mentionPaused: auto.paused,
-      pendingMentionParticipantIds: auto.pendingParticipantIds,
+      messages: [msg],
+      mentionPaused: false,
+      pendingMentionParticipantIds: [],
     }
     return result
   })
@@ -76,21 +93,31 @@ export function registerIpcHandlers(opts: {
 
   ipcMain.handle(IpcChannels.AgentsRun, async (_evt, chatId: string, participantId: string, options: AgentRunOptions) => {
     const msg = await agentService.runAgent(chatId, participantId, options ?? {})
-    const auto = await mentionEngine.runFromTriggerMessage(chatId, msg, 3)
+    emitMessageAppended(chatId, msg)
+    emitMentionState(chatId, false, [])
+    mentionEngine.runFromTriggerMessage(chatId, msg, 3).catch((err) => {
+      console.error('Mention engine failed after manual agent run', err)
+      emitMentionState(chatId, false, [])
+    })
+
     const result: RunBatchResult = {
-      messages: [msg, ...auto.appended],
-      mentionPaused: auto.paused,
-      pendingMentionParticipantIds: auto.pendingParticipantIds,
+      messages: [msg],
+      mentionPaused: false,
+      pendingMentionParticipantIds: [],
     }
     return result
   })
 
   ipcMain.handle(IpcChannels.MentionsResume, async (_evt, chatId: string) => {
-    const auto = await mentionEngine.resume(chatId, 3)
+    emitMentionState(chatId, false, [])
+    mentionEngine.resume(chatId, 3).catch((err) => {
+      console.error('Mention engine failed while resuming', err)
+      emitMentionState(chatId, false, [])
+    })
     const result: RunBatchResult = {
-      messages: auto.appended,
-      mentionPaused: auto.paused,
-      pendingMentionParticipantIds: auto.pendingParticipantIds,
+      messages: [],
+      mentionPaused: false,
+      pendingMentionParticipantIds: [],
     }
     return result
   })

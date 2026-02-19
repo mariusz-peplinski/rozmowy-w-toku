@@ -142,6 +142,17 @@ export interface RunBatchResult {
   pendingMentionParticipantIds?: ParticipantId[]
 }
 
+export interface MessageAppendedEvent {
+  chatId: ChatId
+  message: Message
+}
+
+export interface MentionStateEvent {
+  chatId: ChatId
+  mentionPaused: boolean
+  pendingMentionParticipantIds?: ParticipantId[]
+}
+
 export type AgentRunStatus = 'running' | 'finished' | 'error' | 'timeout'
 
 export interface AgentRunStatusEvent {

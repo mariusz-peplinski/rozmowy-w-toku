@@ -6,18 +6,27 @@ import { extractMentionedParticipantIds } from './mentionParser'
 export class MentionEngine {
   private readonly chatStore: ChatStore
   private readonly agentService: AgentService
+  private readonly onMessageAppended?: (chatId: ChatId, message: Message) => void
+  private readonly onMentionState?: (chatId: ChatId, paused: boolean, pendingParticipantIds: ParticipantId[]) => void
   private readonly perChatQueue = new Map<string, Promise<unknown>>()
   private readonly pendingByChat = new Map<string, Map<ParticipantId, string>>()
 
-  constructor(opts: { chatStore: ChatStore; agentService: AgentService }) {
+  constructor(opts: {
+    chatStore: ChatStore
+    agentService: AgentService
+    onMessageAppended?: (chatId: ChatId, message: Message) => void
+    onMentionState?: (chatId: ChatId, paused: boolean, pendingParticipantIds: ParticipantId[]) => void
+  }) {
     this.chatStore = opts.chatStore
     this.agentService = opts.agentService
+    this.onMessageAppended = opts.onMessageAppended
+    this.onMentionState = opts.onMentionState
   }
 
   /**
    * Runs up to 3 mention-triggered sessions (rounds).
    * Each session runs triggered agents in parallel against a transcript snapshot,
-   * then appends their replies only after all replies are collected.
+   * and appends each reply as soon as it completes.
    */
   async runFromTriggerMessage(
     chatId: ChatId,
@@ -26,6 +35,7 @@ export class MentionEngine {
   ): Promise<{ appended: Message[]; paused: boolean; pendingParticipantIds: ParticipantId[] }> {
     // Any new user/agent action supersedes a previous "paused" mention chain.
     this.pendingByChat.delete(chatId)
+    this.onMentionState?.(chatId, false, [])
     return this.enqueue(chatId, () => this.runFromTriggerMessageInternal(chatId, triggerMessage, maxSessions))
   }
 
@@ -61,10 +71,11 @@ export class MentionEngine {
   private async runSessions(
     chatId: ChatId,
     chat: { participants: Participant[] },
-    currentTriggers: Map<ParticipantId, string>,
+    currentTriggersInput: Map<ParticipantId, string>,
     maxSessions: number,
   ): Promise<{ appended: Message[]; paused: boolean; pendingParticipantIds: ParticipantId[] }> {
     const appended: Message[] = []
+    let currentTriggers = currentTriggersInput
 
     for (let sessionIndex = 1; sessionIndex <= maxSessions; sessionIndex++) {
       if (currentTriggers.size === 0) break
@@ -72,8 +83,8 @@ export class MentionEngine {
       const snapshot = await this.chatStore.listMessages(chatId, 200)
 
       const triggersThisSession = [...currentTriggers.entries()]
-      const replies = await Promise.all(
-        triggersThisSession.map(([participantId, triggeredByMessageId]) =>
+      const pending = triggersThisSession.map(([participantId, triggeredByMessageId]) => {
+        const promise =
           this.agentService.buildAgentMessage({
             chatId,
             participantId,
@@ -83,14 +94,25 @@ export class MentionEngine {
               triggeredByMessageId,
               tagSessionIndex: sessionIndex,
             },
-          }),
-        ),
-      )
+          })
+        return { promise }
+      })
 
-      // Append only after all replies are available, preserving "same snapshot" semantics.
-      for (const msg of replies) {
-        await this.chatStore.appendMessage(chatId, msg)
-        appended.push(msg)
+      const replies: Message[] = []
+      const remaining = [...pending]
+      while (remaining.length > 0) {
+        const raced = await Promise.race(
+          remaining.map((p) =>
+            p.promise.then((msg) => ({ pending: p, msg })),
+          ),
+        )
+        const idx = remaining.indexOf(raced.pending)
+        if (idx >= 0) remaining.splice(idx, 1)
+
+        await this.chatStore.appendMessage(chatId, raced.msg)
+        appended.push(raced.msg)
+        replies.push(raced.msg)
+        this.onMessageAppended?.(chatId, raced.msg)
       }
 
       const nextTriggers = new Map<ParticipantId, string>()
@@ -108,6 +130,7 @@ export class MentionEngine {
 
     const paused = currentTriggers.size > 0
     if (paused) this.pendingByChat.set(chatId, currentTriggers)
+    this.onMentionState?.(chatId, paused, [...currentTriggers.keys()])
 
     return { appended, paused, pendingParticipantIds: [...currentTriggers.keys()] }
   }

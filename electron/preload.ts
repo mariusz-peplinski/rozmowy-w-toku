@@ -1,7 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { RendererApi } from '../shared/ipc'
 import { IpcChannels } from '../shared/ipc'
-import type { AgentRunOptions, AgentRunStatusEvent, CreateChatInput, ListMessagesInput, UpdateChatInput } from '../shared/types'
+import type {
+  AgentRunOptions,
+  AgentRunStatusEvent,
+  CreateChatInput,
+  ListMessagesInput,
+  MentionStateEvent,
+  MessageAppendedEvent,
+  UpdateChatInput,
+} from '../shared/types'
 
 const api: RendererApi = {
   chats: {
@@ -34,6 +42,16 @@ const api: RendererApi = {
       const listener = (_evt: unknown, payload: AgentRunStatusEvent) => cb(payload)
       ipcRenderer.on(IpcChannels.AgentRunStatus, listener)
       return () => ipcRenderer.off(IpcChannels.AgentRunStatus, listener)
+    },
+    onMessageAppended: (cb) => {
+      const listener = (_evt: unknown, payload: MessageAppendedEvent) => cb(payload)
+      ipcRenderer.on(IpcChannels.MessagesAppended, listener)
+      return () => ipcRenderer.off(IpcChannels.MessagesAppended, listener)
+    },
+    onMentionState: (cb) => {
+      const listener = (_evt: unknown, payload: MentionStateEvent) => cb(payload)
+      ipcRenderer.on(IpcChannels.MentionState, listener)
+      return () => ipcRenderer.off(IpcChannels.MentionState, listener)
     },
   },
 }
