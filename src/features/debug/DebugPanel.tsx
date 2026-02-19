@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ChatId, DebugRunLog } from '../../../shared/types'
+import { Button } from '@/components/ui/button'
 
 function short(text: string, max = 180): string {
   const t = text.trim()
@@ -56,12 +57,12 @@ export function DebugPanel(props: {
       <div className="debugPanelHeader">
         <div className="debugPanelTitle">Debug</div>
         <div className="debugPanelActions">
-          <button className="btn" onClick={() => refresh()} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => refresh()} disabled={loading}>
             {loading ? 'Refreshing…' : 'Refresh'}
-          </button>
-          <button className="btn btnDanger" onClick={() => clear()} disabled={loading}>
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => clear()} disabled={loading}>
             Clear
-          </button>
+          </Button>
         </div>
       </div>
 

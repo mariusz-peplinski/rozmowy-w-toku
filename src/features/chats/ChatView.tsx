@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Chat, ChatIndexEntry, Message, ParticipantId } from '../../../shared/types'
 import { DebugPanel } from '../debug/DebugPanel'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 type CssVars = React.CSSProperties & Record<`--${string}`, string>
 
@@ -136,9 +138,9 @@ export function ChatView(props: {
             Agents will show up here once configured per chat.
           </div>
           <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
-            <button className="btn btnPrimary" onClick={onOpenNewChat}>
+            <Button variant="primary" size="sm" onClick={onOpenNewChat}>
               New chat
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -155,12 +157,12 @@ export function ChatView(props: {
           </div>
         </div>
         <div className="participantsBar">
-          <button className="btn" onClick={onEditChat} title="Edit chat context and participants">
+          <Button variant="outline" size="sm" onClick={onEditChat} title="Edit chat context and participants">
             Edit
-          </button>
-          <button className="btn" onClick={() => setDebugOpen((v) => !v)} title="Show provider commands and outputs">
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setDebugOpen((v) => !v)} title="Show provider commands and outputs">
             {debugOpen ? 'Hide debug' : 'Debug'}
-          </button>
+          </Button>
           {participants.map((p) => (
             <div
               key={p.id}
@@ -246,14 +248,16 @@ export function ChatView(props: {
             <div style={{ color: 'var(--muted)', fontSize: 12 }}>
               Auto replies paused (mention limit reached).
             </div>
-            <button className="btn" onClick={() => resumeMentions().catch(() => undefined)}>
+            <Button variant="outline" size="sm" onClick={() => resumeMentions().catch(() => undefined)}>
               Let them continue
-            </button>
+            </Button>
           </div>
         ) : null}
-        <textarea
+        <Textarea
           value={composeText}
           placeholder="Message as you… (Shift+Enter for a new line)"
+          textareaSize="default"
+          className="h-[88px] min-h-[88px] resize-none"
           onChange={(e) => setComposeText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -262,9 +266,9 @@ export function ChatView(props: {
             }
           }}
         />
-        <button className="btn btnPrimary" disabled={!composeText.trim() || sending} onClick={() => sendUserMessage()}>
+        <Button variant="primary" size="default" disabled={!composeText.trim() || sending} onClick={() => sendUserMessage()}>
           {sending ? 'Sending…' : 'Send'}
-        </button>
+        </Button>
       </div>
     </>
   )

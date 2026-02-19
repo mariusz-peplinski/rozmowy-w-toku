@@ -1,4 +1,6 @@
 import type { ChatId, ChatIndexEntry } from '../../../shared/types'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 export function ChatList(props: {
   chats: ChatIndexEntry[]
@@ -21,9 +23,11 @@ export function ChatList(props: {
       ) : null}
 
       {chats.map((c) => (
-        <div
+        <Card
           key={c.id}
-          className={`chatItem ${selectedChatId === c.id ? 'chatItemActive' : ''}`}
+          variant="interactive"
+          padding="sm"
+          className={cn('chatItem', selectedChatId === c.id && 'chatItemActive')}
           onClick={() => onSelect(c.id)}
           role="button"
           tabIndex={0}
@@ -36,9 +40,8 @@ export function ChatList(props: {
             <span>{new Date(c.updatedAt).toLocaleDateString()}</span>
             <span>{new Date(c.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   )
 }
-

@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Minimal global styles; the app UI is styled in src/App.css. */
 
 *,
@@ -15,8 +19,8 @@ body,
 body {
   margin: 0;
   min-width: 320px;
-  background: #0b0d14;
-  color: rgba(255, 255, 255, 0.92);
+  background: var(--surface-main, #0b0d14);
+  color: var(--text, rgba(255, 255, 255, 0.92));
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -28,4 +32,33 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+/* Brutalist UI Styles */
+.border-3 {
+    border-width: 3px;
+}
+
+.shadow-brutal {
+    box-shadow: 4px 4px 0px 0px #000;
+}
+
+.shadow-brutal-sm {
+    box-shadow: 2px 2px 0px 0px #000;
+}
+
+.shadow-brutal-lg {
+    box-shadow: 6px 6px 0px 0px #000;
+}
+
+.dark .shadow-brutal {
+    box-shadow: 4px 4px 0px 0px #fff;
+}
+
+.dark .shadow-brutal-sm {
+    box-shadow: 2px 2px 0px 0px #fff;
+}
+
+.dark .shadow-brutal-lg {
+    box-shadow: 6px 6px 0px 0px #fff;
 }

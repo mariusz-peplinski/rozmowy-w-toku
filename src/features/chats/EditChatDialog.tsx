@@ -1,5 +1,21 @@
 import { useMemo, useState } from 'react'
 import type { AgentType, Chat, Participant, RoamingConfig, UpdateChatInput } from '../../../shared/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type DraftParticipant = Participant & { draftId: string; roamingAck: boolean }
 
@@ -107,14 +123,13 @@ export function EditChatDialog(props: {
   }
 
   return (
-    <div className="dialogBackdrop" role="dialog" aria-modal="true">
-      <div className="dialog">
-        <div className="dialogHeader">
-          <h2 className="dialogTitle">Edit chat</h2>
-          <button className="btn" onClick={onClose} disabled={saving}>
-            Close
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => {
+      if (!open && !saving) onClose()
+    }}>
+      <DialogContent className="max-w-[980px] max-h-[86vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-3">
+          <DialogTitle className="text-base">Edit chat</DialogTitle>
+        </DialogHeader>
 
         <div className="formGrid">
           {error ? (
@@ -127,14 +142,14 @@ export function EditChatDialog(props: {
           <div className="row">
             <div className="field">
               <div className="fieldLabel">Title</div>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} disabled={saving} />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={saving} />
             </div>
             <div className="field">
               <div className="fieldLabel">Participants</div>
               <div className="inline">
-                <button className="btn" onClick={() => setParticipants((p) => [...p, defaultNewParticipant()])} disabled={saving}>
+                <Button variant="outline" size="sm" onClick={() => setParticipants((p) => [...p, defaultNewParticipant()])} disabled={saving}>
                   Add agent
-                </button>
+                </Button>
                 <span style={{ color: 'var(--muted)', fontSize: 12 }}>
                   Removing agents may make old messages lose their color.
                 </span>
@@ -144,7 +159,7 @@ export function EditChatDialog(props: {
 
           <div className="field">
             <div className="fieldLabel">Chat context</div>
-            <textarea value={context} onChange={(e) => setContext(e.target.value)} disabled={saving} />
+            <Textarea value={context} onChange={(e) => setContext(e.target.value)} disabled={saving} className="min-h-[100px]" />
           </div>
 
           {participants.map((p, i) => (
@@ -153,23 +168,32 @@ export function EditChatDialog(props: {
                 <p className="agentCardTitle">
                   Agent {i + 1}: {niceTypeLabel(p.type)}
                 </p>
-                <button className="btn btnDanger" onClick={() => removeParticipant(i)} disabled={participants.length <= 1 || saving}>
+                <Button variant="danger" size="sm" onClick={() => removeParticipant(i)} disabled={participants.length <= 1 || saving}>
                   Remove
-                </button>
+                </Button>
               </div>
 
               <div className="row">
                 <div className="field">
                   <div className="fieldLabel">Type</div>
-                  <select value={p.type} onChange={(e) => setParticipant(i, { type: e.target.value as AgentType })} disabled={saving}>
-                    <option value="codex">Codex</option>
-                    <option value="claude">Claude</option>
-                    <option value="gemini">Gemini</option>
-                  </select>
+                  <Select
+                    value={p.type}
+                    onValueChange={(value) => setParticipant(i, { type: value as AgentType })}
+                    disabled={saving}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="codex">Codex</SelectItem>
+                      <SelectItem value="claude">Claude</SelectItem>
+                      <SelectItem value="gemini">Gemini</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="field">
                   <div className="fieldLabel">Display name</div>
-                  <input type="text" value={p.displayName} onChange={(e) => setParticipant(i, { displayName: e.target.value })} disabled={saving} />
+                  <Input value={p.displayName} onChange={(e) => setParticipant(i, { displayName: e.target.value })} disabled={saving} />
                 </div>
               </div>
 
@@ -199,9 +223,9 @@ export function EditChatDialog(props: {
                       />
                       Enabled (dangerous)
                     </label>
-                    <button className="btn" onClick={() => pickDir(i)} disabled={!p.roaming.enabled || saving}>
+                    <Button variant="outline" size="sm" onClick={() => pickDir(i)} disabled={!p.roaming.enabled || saving}>
                       Pick directory
-                    </button>
+                    </Button>
                     <span className="truncatePath" title={p.roaming.workspaceDir || undefined} style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>
                       {p.roaming.workspaceDir ? p.roaming.workspaceDir : 'No directory selected'}
                     </span>
@@ -211,7 +235,7 @@ export function EditChatDialog(props: {
 
               <div className="field">
                 <div className="fieldLabel">Persona (role)</div>
-                <textarea value={p.persona} onChange={(e) => setParticipant(i, { persona: e.target.value })} disabled={saving} />
+                <Textarea value={p.persona} onChange={(e) => setParticipant(i, { persona: e.target.value })} disabled={saving} className="min-h-[100px]" />
               </div>
 
               {p.roaming.enabled ? (
@@ -229,16 +253,15 @@ export function EditChatDialog(props: {
           ))}
 
           <div className="footerActions">
-            <button className="btn" onClick={onClose} disabled={saving}>
+            <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
               Cancel
-            </button>
-            <button className="btn btnPrimary" onClick={() => save()} disabled={saving || roamingInvalid}>
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => save()} disabled={saving || roamingInvalid}>
               {saving ? 'Saving…' : 'Save changes'}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
-

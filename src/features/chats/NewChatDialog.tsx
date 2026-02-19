@@ -1,5 +1,21 @@
 import { useMemo, useState } from 'react'
 import type { AgentType, Chat, CreateChatInput, CreateChatParticipantInput, RoamingConfig } from '../../../shared/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type DraftParticipant = CreateChatParticipantInput & {
   draftId: string
@@ -104,14 +120,13 @@ export function NewChatDialog(props: {
   }
 
   return (
-    <div className="dialogBackdrop" role="dialog" aria-modal="true">
-      <div className="dialog">
-        <div className="dialogHeader">
-          <h2 className="dialogTitle">New chat</h2>
-          <button className="btn" onClick={onClose} disabled={creating}>
-            Close
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => {
+      if (!open && !creating) onClose()
+    }}>
+      <DialogContent className="max-w-[980px] max-h-[86vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-3">
+          <DialogTitle className="text-base">New chat</DialogTitle>
+        </DialogHeader>
 
         <div className="formGrid">
           {error ? (
@@ -124,23 +139,24 @@ export function NewChatDialog(props: {
           <div className="row">
             <div className="field">
               <div className="fieldLabel">Title (optional)</div>
-              <input
-                type="text"
+              <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Refactor discussion"
+                inputSize="default"
               />
             </div>
             <div className="field">
               <div className="fieldLabel">Participants</div>
               <div className="inline">
-                <button
-                  className="btn"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setParticipants((p) => [...p, defaultParticipant()])}
                   disabled={creating}
                 >
                   Add agent
-                </button>
+                </Button>
                 <span style={{ color: 'var(--muted)', fontSize: 12 }}>
                   Agents are copied into the chat when created.
                 </span>
@@ -150,10 +166,11 @@ export function NewChatDialog(props: {
 
           <div className="field">
             <div className="fieldLabel">Chat context</div>
-            <textarea
+            <Textarea
               value={context}
               onChange={(e) => setContext(e.target.value)}
               placeholder="What is this discussion about? Add constraints, goals, and relevant context here."
+              className="min-h-[100px]"
             />
           </div>
 
@@ -163,32 +180,37 @@ export function NewChatDialog(props: {
                 <p className="agentCardTitle">
                   Agent {i + 1}: {niceTypeLabel(p.type)}
                 </p>
-                <button className="btn btnDanger" onClick={() => removeParticipant(i)} disabled={participants.length <= 1 || creating}>
+                <Button variant="danger" size="sm" onClick={() => removeParticipant(i)} disabled={participants.length <= 1 || creating}>
                   Remove
-                </button>
+                </Button>
               </div>
 
               <div className="row">
                 <div className="field">
                   <div className="fieldLabel">Type</div>
-                  <select
+                  <Select
                     value={p.type}
-                    onChange={(e) => setParticipant(i, { type: e.target.value as AgentType })}
+                    onValueChange={(value) => setParticipant(i, { type: value as AgentType })}
                     disabled={creating}
                   >
-                    <option value="codex">Codex</option>
-                    <option value="claude">Claude</option>
-                    <option value="gemini">Gemini</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="codex">Codex</SelectItem>
+                      <SelectItem value="claude">Claude</SelectItem>
+                      <SelectItem value="gemini">Gemini</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="field">
                   <div className="fieldLabel">Display name</div>
-                  <input
-                    type="text"
+                  <Input
                     value={p.displayName}
                     onChange={(e) => setParticipant(i, { displayName: e.target.value })}
                     placeholder="e.g. Reviewer"
                     disabled={creating}
+                    inputSize="default"
                   />
                 </div>
               </div>
@@ -227,9 +249,9 @@ export function NewChatDialog(props: {
                       />
                       Enabled (dangerous)
                     </label>
-                    <button className="btn" onClick={() => pickDir(i)} disabled={!p.roaming.enabled || creating}>
+                    <Button variant="outline" size="sm" onClick={() => pickDir(i)} disabled={!p.roaming.enabled || creating}>
                       Pick directory
-                    </button>
+                    </Button>
                     <span
                       className="truncatePath"
                       title={p.roaming.workspaceDir ? p.roaming.workspaceDir : undefined}
@@ -243,11 +265,12 @@ export function NewChatDialog(props: {
 
               <div className="field">
                 <div className="fieldLabel">Persona (role)</div>
-                <textarea
+                <Textarea
                   value={p.persona}
                   onChange={(e) => setParticipant(i, { persona: e.target.value })}
                   placeholder="e.g. You are a nitpicky code reviewer with a pessimistic view on everything."
                   disabled={creating}
+                  className="min-h-[100px]"
                 />
               </div>
 
@@ -271,20 +294,21 @@ export function NewChatDialog(props: {
           ))}
 
           <div className="footerActions">
-            <button className="btn" onClick={onClose} disabled={creating}>
+            <Button variant="outline" size="sm" onClick={onClose} disabled={creating}>
               Cancel
-            </button>
-            <button
-              className="btn btnPrimary"
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => create()}
               disabled={creating || participants.length === 0 || roamingInvalid}
               title={roamingInvalid ? 'Roaming requires a directory and acknowledgement.' : undefined}
             >
               {creating ? 'Creating…' : 'Create chat'}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -5,6 +5,7 @@ import { ChatList } from './features/chats/ChatList'
 import { ChatView } from './features/chats/ChatView'
 import { NewChatDialog } from './features/chats/NewChatDialog'
 import { EditChatDialog } from './features/chats/EditChatDialog'
+import { Button } from '@/components/ui/button'
 
 type Theme = 'dark' | 'light'
 
@@ -62,6 +63,7 @@ function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    document.documentElement.classList.toggle('dark', theme === 'dark')
     localStorage.setItem('theme', theme)
   }, [theme])
 
@@ -78,12 +80,12 @@ function App() {
             <div className="brandSub">Local, multi-agent group chats</div>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button className="btn" onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}>
+            <Button variant="outline" size="sm" onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}>
               {theme === 'dark' ? 'Light' : 'Dark'}
-            </button>
-            <button className="btn btnPrimary" onClick={() => setNewChatOpen(true)}>
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
               New chat
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -96,16 +98,16 @@ function App() {
 
       <main className="main">
         <div className="mobileBar">
-          <button className="btn" onClick={() => setMobileSidebarOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setMobileSidebarOpen(true)}>
             Chats
-          </button>
+          </Button>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button className="btn" onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}>
+            <Button variant="outline" size="sm" onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}>
               {theme === 'dark' ? 'Light' : 'Dark'}
-            </button>
-            <button className="btn btnPrimary" onClick={() => setNewChatOpen(true)}>
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
               New chat
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -135,17 +137,17 @@ function App() {
           <div className="dialog mobileSidebar">
             <div className="dialogHeader">
               <h2 className="dialogTitle">Chats</h2>
-              <button className="btn" onClick={() => setMobileSidebarOpen(false)}>
+              <Button variant="outline" size="sm" onClick={() => setMobileSidebarOpen(false)}>
                 Close
-              </button>
+              </Button>
             </div>
             <div style={{ paddingTop: 12, display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-              <button className="btn btnPrimary" onClick={() => setNewChatOpen(true)}>
+              <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
                 New chat
-              </button>
-              <button className="btn" onClick={() => refreshChats()}>
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => refreshChats()}>
                 Refresh
-              </button>
+              </Button>
             </div>
             <div style={{ marginTop: 12 }}>
               <ChatList chats={chats} selectedChatId={selectedChatId} onSelect={(id) => loadChat(id)} />
