@@ -377,17 +377,17 @@ body {
 .mentionTag {
   display: inline-block;
   font-weight: 800;
-  color: color-mix(in srgb, var(--accent), white 10%);
-  background: color-mix(in srgb, var(--accent), transparent 82%);
-  border: 1px solid color-mix(in srgb, var(--accent), transparent 62%);
+  color: var(--mention-ink, color-mix(in srgb, var(--accent), white 10%));
+  background: var(--mention-bg, color-mix(in srgb, var(--accent), transparent 82%));
+  border: 1px solid var(--mention-border, color-mix(in srgb, var(--accent), transparent 62%));
   border-radius: 4px;
   padding: 0 4px;
 }
 
 .bubbleMe .mentionTag {
-  color: #9b5e00;
-  background: #ffe9bf;
-  border-color: #e0ba76;
+  color: var(--mention-ink, #9b5e00);
+  background: var(--mention-bg, #ffe9bf);
+  border-color: var(--mention-border, #e0ba76);
 }
 
 .composer {

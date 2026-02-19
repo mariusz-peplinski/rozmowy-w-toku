@@ -30,6 +30,7 @@ type MentionToken = {
 type MentionSegment =
   | { kind: 'text'; value: string }
   | { kind: 'mention'; value: string }
+type MentionStyleVars = React.CSSProperties & Record<`--${string}`, string>
 
 function participantColor(chat: Chat | null, authorId: ParticipantId | 'user'): string {
   if (authorId === 'user') return '#d9dde3'
@@ -181,6 +182,16 @@ export function ChatView(props: {
       if (p.displayName.trim()) unique.add(`@${p.displayName.trim()}`)
     }
     return [...unique].sort((a, b) => b.length - a.length)
+  }, [participants])
+  const mentionColorByToken = useMemo(() => {
+    const map = new Map<string, string>()
+    map.set('@everyone', '#f59e0b')
+    for (const p of participants) {
+      const color = p.colorHex || '#f59e0b'
+      if (p.handle.trim()) map.set(`@${p.handle.trim().toLowerCase()}`, color)
+      if (p.displayName.trim()) map.set(`@${p.displayName.trim().toLowerCase()}`, color)
+    }
+    return map
   }, [participants])
   const mentionRemarkPlugin = useMemo(() => createMentionRemarkPlugin(mentionTokens), [mentionTokens])
   const filteredMentionOptions = useMemo(() => {
@@ -446,7 +457,18 @@ export function ChatView(props: {
                   remarkPlugins={[remarkGfm, mentionRemarkPlugin]}
                   components={{
                     a: ({ href, children }) => {
-                      if (href?.startsWith('mention:')) return <span className="mentionTag">{children}</span>
+                      if (href?.startsWith('mention:')) {
+                        const text = (Array.isArray(children) ? children.join('') : String(children ?? '')).trim()
+                        const fromHref = `@${href.slice('mention:'.length).trim().toLowerCase()}`
+                        const fromText = text.toLowerCase()
+                        const color = mentionColorByToken.get(fromText) || mentionColorByToken.get(fromHref) || '#f59e0b'
+                        const style: MentionStyleVars = {
+                          '--mention-ink': color,
+                          '--mention-bg': `${color}22`,
+                          '--mention-border': `${color}aa`,
+                        }
+                        return <span className="mentionTag" style={style}>{children}</span>
+                      }
                       return (
                         <a href={href} target="_blank" rel="noreferrer noopener">
                           {children}
