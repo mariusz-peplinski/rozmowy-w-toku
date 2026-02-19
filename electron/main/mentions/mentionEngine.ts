@@ -63,7 +63,10 @@ export class MentionEngine {
 
     const currentTriggers = new Map<ParticipantId, string>()
     const initialMentioned = extractMentionedParticipantIds(triggerMessage.text, chat.participants)
-    for (const pid of initialMentioned) currentTriggers.set(pid, triggerMessage.id)
+    for (const pid of initialMentioned) {
+      if (triggerMessage.authorKind === 'agent' && triggerMessage.authorId === pid) continue
+      currentTriggers.set(pid, triggerMessage.id)
+    }
 
     return this.runSessions(chatId, chat, currentTriggers, maxSessions)
   }

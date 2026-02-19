@@ -49,7 +49,7 @@ export function buildAgentPrompt(opts: {
     '- Write a single chat message that moves the discussion forward.',
     '- Be concise unless more detail is necessary to be correct.',
     '- Do not @mention others unless you actually need their input or you are directly responding to them.',
-    '- If you do @mention someone, mention them at most once per message.',
+    '- If you do @mention someone, mention them at most once per message (or use @everyone to address all agents).',
     '- Output only the message body (no prefix like "Name:").',
     participant.roaming.enabled
       ? '- You may read files and run commands in the configured workspace directory if needed for accuracy.'

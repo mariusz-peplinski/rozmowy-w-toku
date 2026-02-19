@@ -121,16 +121,18 @@ export function ChatView(props: {
 
   const participants = useMemo(() => chat?.participants ?? [], [chat])
   const mentionOptions = useMemo<MentionOption[]>(
-    () =>
-      participants.map((p) => ({
+    () => [
+      { participantId: '__everyone__', label: 'everyone (all agents)', insertText: '@everyone' },
+      ...participants.map((p) => ({
         participantId: p.id,
         label: `${p.displayName} (@${p.handle})`,
         insertText: `@${p.handle}`,
       })),
+    ],
     [participants],
   )
   const mentionTokens = useMemo(() => {
-    const unique = new Set<string>()
+    const unique = new Set<string>(['@everyone'])
     for (const p of participants) {
       if (p.handle.trim()) unique.add(`@${p.handle}`)
       if (p.displayName.trim()) unique.add(`@${p.displayName.trim()}`)
@@ -490,4 +492,3 @@ export function ChatView(props: {
     </>
   )
 }
-

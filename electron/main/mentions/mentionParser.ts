@@ -1,5 +1,7 @@
 import type { Participant, ParticipantId } from '../../../shared/types'
 
+const EVERYONE_TOKEN = '@everyone'
+
 type MentionCandidate = {
   participantId: ParticipantId
   token: string
@@ -8,6 +10,13 @@ type MentionCandidate = {
 
 function isBoundaryChar(ch: string): boolean {
   return /\s|[([{'"`]|[.,;:!?]/.test(ch)
+}
+
+function hasTokenAt(lower: string, text: string, start: number, tokenLower: string): boolean {
+  if (!lower.startsWith(tokenLower, start)) return false
+  const end = start + tokenLower.length
+  if (end < text.length && !isBoundaryChar(text[end]!)) return false
+  return true
 }
 
 export function extractMentionedParticipantIds(text: string, participants: Participant[]): Set<ParticipantId> {
@@ -40,8 +49,14 @@ export function extractMentionedParticipantIds(text: string, participants: Parti
     if (text[i] !== '@') continue
     if (i > 0 && !isBoundaryChar(text[i - 1]!)) continue
 
+    if (hasTokenAt(lower, text, i, EVERYONE_TOKEN)) {
+      for (const p of participants) mentioned.add(p.id)
+      i += EVERYONE_TOKEN.length - 1
+      continue
+    }
+
     for (const c of candidates) {
-      if (lower.startsWith(c.tokenLower, i)) {
+      if (hasTokenAt(lower, text, i, c.tokenLower)) {
         mentioned.add(c.participantId)
         // Move index forward to avoid O(n*m) worst-cases on long messages.
         i += c.token.length - 1
@@ -52,4 +67,3 @@ export function extractMentionedParticipantIds(text: string, participants: Parti
 
   return mentioned
 }
-
