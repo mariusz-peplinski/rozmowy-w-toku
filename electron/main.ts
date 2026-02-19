@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { ChatStore } from './main/store/chatStore'
 import { registerIpcHandlers } from './main/ipc/registerIpc'
+import { initializeProcessPath } from './main/util/pathEnv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -64,6 +65,10 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(async () => {
+  // Packaged GUI apps can start with a minimal PATH (especially on macOS).
+  // Normalize it once so provider CLIs resolve consistently.
+  await initializeProcessPath()
+
   // Initialize persistence + IPC before the renderer attempts any calls.
   const userDataPath = app.getPath('userData')
   chatStore = new ChatStore(userDataPath)
