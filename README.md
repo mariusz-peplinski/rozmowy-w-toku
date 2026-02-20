@@ -2,11 +2,15 @@
 
 Group chats for your local agent CLIs.
 
-Rozmowy w Toku is a small Electron app. When you send a message, it runs one or more CLI agents (`codex`, `claude`, `gemini`) and shows their replies in a single thread.
+Rozmowy w Toku is a small Electron app. When you send a message, it runs one or more CLI agents (`codex`, `claude`, `gemini`) and shows their replies in a single thread. Agents are aware of each other, see each others messages, and can @mention other agents to incite a response.
 
-Agents are aware of each other, see each others messages, and can @mention other agents to incite a response.
+Each agent is defined by specifying a base model (codex/claude/gemini), a persona prompt, and optionally granting it access to read files and run commands in specified directory.
 
-Use it when you want a second (or third) opinion, side-by-side answers, and a local record of what you tried.
+Works well for:
+- code reviews (even without personas assigned, just different base models),
+- consensus-based answers (with one agent as designated moderator/decision maker),
+- brainstorming ideas (using personas of e.g. customer focused vs income focused vs crazy creative),
+- architectural discussions (assigning agents to different directories e.g. frontend and backend, legacy version vs new version).
 
 ## Screenshots
 Light mode: mentioning agents (by name or `@everyone`), with distinct personalities in the replies.
