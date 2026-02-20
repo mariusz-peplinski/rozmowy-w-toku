@@ -7,10 +7,12 @@ const IpcChannels = {
   ChatsUpdate: "chats:update",
   MessagesList: "messages:list",
   MessagesAppendUser: "messages:appendUser",
+  MessagesAppended: "messages:appended",
   MessagesDelete: "messages:delete",
   AgentsRun: "agents:run",
   AgentRunStatus: "agents:runStatus",
   MentionsResume: "mentions:resume",
+  MentionState: "mentions:state",
   DialogPickDirectory: "dialog:pickDirectory",
   DebugRunsList: "debug:runs:list",
   DebugRunsClear: "debug:runs:clear"
@@ -45,6 +47,16 @@ const api = {
       const listener = (_evt, payload) => cb(payload);
       electron.ipcRenderer.on(IpcChannels.AgentRunStatus, listener);
       return () => electron.ipcRenderer.off(IpcChannels.AgentRunStatus, listener);
+    },
+    onMessageAppended: (cb) => {
+      const listener = (_evt, payload) => cb(payload);
+      electron.ipcRenderer.on(IpcChannels.MessagesAppended, listener);
+      return () => electron.ipcRenderer.off(IpcChannels.MessagesAppended, listener);
+    },
+    onMentionState: (cb) => {
+      const listener = (_evt, payload) => cb(payload);
+      electron.ipcRenderer.on(IpcChannels.MentionState, listener);
+      return () => electron.ipcRenderer.off(IpcChannels.MentionState, listener);
     }
   }
 };

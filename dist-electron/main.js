@@ -91,16 +91,52 @@ function isDeleteEvent(x) {
   if (typeof x !== "object" || x === null) return false;
   return "kind" in x && x.kind === "delete";
 }
-function ensureUniqueHandles(participants) {
-  const used = /* @__PURE__ */ new Map();
-  return participants.map((p) => {
-    var _a;
-    const base = ((_a = p.handle) == null ? void 0 : _a.trim()) ? p.handle.trim() : slugifyHandle(p.displayName);
-    const count = used.get(base) ?? 0;
-    used.set(base, count + 1);
-    const handle = count === 0 ? base : `${base}-${count + 1}`;
-    return { ...p, handle };
-  });
+function isBoundaryChar$1(ch) {
+  return /\s|[([{'"`]|[.,;:!?]/.test(ch);
+}
+function rewriteMentionsInText(text, rewrites) {
+  const tokenRewrites = [];
+  for (const r of rewrites) {
+    if (r.oldHandle && r.oldHandle !== r.newHandle) {
+      tokenRewrites.push({
+        token: `@${r.oldHandle}`,
+        tokenLower: `@${r.oldHandle}`.toLowerCase(),
+        replaceWith: `@${r.newHandle}`
+      });
+    }
+    if (r.oldDisplayName.trim() && r.oldDisplayName !== r.newDisplayName) {
+      tokenRewrites.push({
+        token: `@${r.oldDisplayName.trim()}`,
+        tokenLower: `@${r.oldDisplayName.trim()}`.toLowerCase(),
+        replaceWith: `@${r.newDisplayName.trim()}`
+      });
+    }
+  }
+  if (tokenRewrites.length === 0) return text;
+  tokenRewrites.sort((a, b) => b.token.length - a.token.length);
+  const lower = text.toLowerCase();
+  let out = "";
+  let cursor = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== "@") continue;
+    if (i > 0 && !isBoundaryChar$1(text[i - 1])) continue;
+    let matched = null;
+    for (const c of tokenRewrites) {
+      if (!lower.startsWith(c.tokenLower, i)) continue;
+      const end = i + c.token.length;
+      if (end < text.length && !isBoundaryChar$1(text[end])) continue;
+      matched = c;
+      break;
+    }
+    if (!matched) continue;
+    out += text.slice(cursor, i);
+    out += matched.replaceWith;
+    i += matched.token.length - 1;
+    cursor = i + 1;
+  }
+  if (cursor === 0) return text;
+  out += text.slice(cursor);
+  return out;
 }
 class ChatStore {
   constructor(userDataPath) {
@@ -162,13 +198,28 @@ class ChatStore {
   async updateChat(input) {
     const existing = await this.getChat(input.chatId);
     const updatedAt = nowIso();
+    const normalizedParticipants = input.participants.map((p, i) => ({
+      ...p,
+      displayName: p.displayName.trim() || `Agent ${i + 1}`
+    }));
+    const handles = uniqueHandles(normalizedParticipants);
+    const participants = normalizedParticipants.map((p, i) => ({
+      ...p,
+      handle: handles[i]
+    }));
     const oldById = new Map(existing.participants.map((p) => [p.id, p]));
-    const withHandles = input.participants.map((p) => {
+    const rewrites = [];
+    for (const p of participants) {
       const old = oldById.get(p.id);
-      if (old) return { ...p, handle: old.handle };
-      return { ...p, handle: slugifyHandle(p.displayName) };
-    });
-    const participants = ensureUniqueHandles(withHandles);
+      if (!old) continue;
+      if (old.handle === p.handle && old.displayName === p.displayName) continue;
+      rewrites.push({
+        oldHandle: old.handle,
+        oldDisplayName: old.displayName,
+        newHandle: p.handle,
+        newDisplayName: p.displayName
+      });
+    }
     const next = {
       ...existing,
       title: input.title.trim() || existing.title,
@@ -176,6 +227,9 @@ class ChatStore {
       participants,
       updatedAt
     };
+    if (rewrites.length > 0) {
+      await this.rewriteMentionsInMessages(existing.id, rewrites);
+    }
     await writeJsonFileAtomic(chatMetaFile(this.chatsRoot, existing.id), next);
     await this.upsertIndexEntry({
       id: next.id,
@@ -236,6 +290,24 @@ class ChatStore {
     existing.updatedAt = updatedAt;
     await this.writeIndex(idx);
   }
+  async rewriteMentionsInMessages(chatId, rewrites) {
+    const file = chatMessagesFile(this.chatsRoot, chatId);
+    if (!await pathExists(file)) return;
+    const all = await readJsonlFile(file);
+    let changed = false;
+    const rewritten = all.map((item) => {
+      if (isDeleteEvent(item)) return item;
+      const nextText = rewriteMentionsInText(item.text, rewrites);
+      if (nextText === item.text) return item;
+      changed = true;
+      return { ...item, text: nextText };
+    });
+    if (!changed) return;
+    const tmp = path.join(path.dirname(file), `.${path.basename(file)}.tmp-${process.pid}-${Date.now()}`);
+    const raw = rewritten.map((line) => JSON.stringify(line)).join("\n") + "\n";
+    await fs.writeFile(tmp, raw, "utf8");
+    await fs.rename(tmp, file);
+  }
 }
 const IpcChannels = {
   ChatsList: "chats:list",
@@ -244,10 +316,12 @@ const IpcChannels = {
   ChatsUpdate: "chats:update",
   MessagesList: "messages:list",
   MessagesAppendUser: "messages:appendUser",
+  MessagesAppended: "messages:appended",
   MessagesDelete: "messages:delete",
   AgentsRun: "agents:run",
   AgentRunStatus: "agents:runStatus",
   MentionsResume: "mentions:resume",
+  MentionState: "mentions:state",
   DialogPickDirectory: "dialog:pickDirectory",
   DebugRunsList: "debug:runs:list",
   DebugRunsClear: "debug:runs:clear"
@@ -290,7 +364,7 @@ function buildAgentPrompt(opts) {
     "- Write a single chat message that moves the discussion forward.",
     "- Be concise unless more detail is necessary to be correct.",
     "- Do not @mention others unless you actually need their input or you are directly responding to them.",
-    "- If you do @mention someone, mention them at most once per message.",
+    "- If you do @mention someone, mention them at most once per message (or use @everyone to address all agents).",
     '- Output only the message body (no prefix like "Name:").',
     participant.roaming.enabled ? "- You may read files and run commands in the configured workspace directory if needed for accuracy." : "- Do not claim you ran commands or read files; you do not have workspace access in this mode.",
     "",
@@ -388,7 +462,6 @@ async function buildCommand(opts) {
     if (roaming.enabled) {
       args2.push("--dangerously-skip-permissions");
       args2.push("--allowedTools", "Bash,Read,Write");
-      if (roaming.workspaceDir) args2.push("--cwd", roaming.workspaceDir);
     } else {
       args2.push("--permission-mode", "plan");
     }
@@ -559,8 +632,15 @@ class AgentService {
     return msg;
   }
 }
+const EVERYONE_TOKEN = "@everyone";
 function isBoundaryChar(ch) {
   return /\s|[([{'"`]|[.,;:!?]/.test(ch);
+}
+function hasTokenAt(lower, text, start, tokenLower) {
+  if (!lower.startsWith(tokenLower, start)) return false;
+  const end = start + tokenLower.length;
+  if (end < text.length && !isBoundaryChar(text[end])) return false;
+  return true;
 }
 function extractMentionedParticipantIds(text, participants) {
   const candidates = [];
@@ -585,8 +665,13 @@ function extractMentionedParticipantIds(text, participants) {
   for (let i = 0; i < text.length; i++) {
     if (text[i] !== "@") continue;
     if (i > 0 && !isBoundaryChar(text[i - 1])) continue;
+    if (hasTokenAt(lower, text, i, EVERYONE_TOKEN)) {
+      for (const p of participants) mentioned.add(p.id);
+      i += EVERYONE_TOKEN.length - 1;
+      continue;
+    }
     for (const c of candidates) {
-      if (lower.startsWith(c.tokenLower, i)) {
+      if (hasTokenAt(lower, text, i, c.tokenLower)) {
         mentioned.add(c.participantId);
         i += c.token.length - 1;
         break;
@@ -599,18 +684,24 @@ class MentionEngine {
   constructor(opts) {
     __publicField(this, "chatStore");
     __publicField(this, "agentService");
+    __publicField(this, "onMessageAppended");
+    __publicField(this, "onMentionState");
     __publicField(this, "perChatQueue", /* @__PURE__ */ new Map());
     __publicField(this, "pendingByChat", /* @__PURE__ */ new Map());
     this.chatStore = opts.chatStore;
     this.agentService = opts.agentService;
+    this.onMessageAppended = opts.onMessageAppended;
+    this.onMentionState = opts.onMentionState;
   }
   /**
    * Runs up to 3 mention-triggered sessions (rounds).
    * Each session runs triggered agents in parallel against a transcript snapshot,
-   * then appends their replies only after all replies are collected.
+   * and appends each reply as soon as it completes.
    */
   async runFromTriggerMessage(chatId, triggerMessage, maxSessions = 3) {
+    var _a;
     this.pendingByChat.delete(chatId);
+    (_a = this.onMentionState) == null ? void 0 : _a.call(this, chatId, false, []);
     return this.enqueue(chatId, () => this.runFromTriggerMessageInternal(chatId, triggerMessage, maxSessions));
   }
   async resume(chatId, maxSessions = 3) {
@@ -628,32 +719,47 @@ class MentionEngine {
     const chat = await this.chatStore.getChat(chatId);
     const currentTriggers = /* @__PURE__ */ new Map();
     const initialMentioned = extractMentionedParticipantIds(triggerMessage.text, chat.participants);
-    for (const pid of initialMentioned) currentTriggers.set(pid, triggerMessage.id);
+    for (const pid of initialMentioned) {
+      if (triggerMessage.authorKind === "agent" && triggerMessage.authorId === pid) continue;
+      currentTriggers.set(pid, triggerMessage.id);
+    }
     return this.runSessions(chatId, chat, currentTriggers, maxSessions);
   }
-  async runSessions(chatId, chat, currentTriggers, maxSessions) {
+  async runSessions(chatId, chat, currentTriggersInput, maxSessions) {
+    var _a, _b;
     const appended = [];
+    let currentTriggers = currentTriggersInput;
     for (let sessionIndex = 1; sessionIndex <= maxSessions; sessionIndex++) {
       if (currentTriggers.size === 0) break;
       const snapshot = await this.chatStore.listMessages(chatId, 200);
       const triggersThisSession = [...currentTriggers.entries()];
-      const replies = await Promise.all(
-        triggersThisSession.map(
-          ([participantId, triggeredByMessageId]) => this.agentService.buildAgentMessage({
-            chatId,
-            participantId,
-            messagesSnapshot: snapshot,
-            runOpts: {
-              trigger: "mention",
-              triggeredByMessageId,
-              tagSessionIndex: sessionIndex
-            }
-          })
-        )
-      );
-      for (const msg of replies) {
-        await this.chatStore.appendMessage(chatId, msg);
-        appended.push(msg);
+      const pending = triggersThisSession.map(([participantId, triggeredByMessageId]) => {
+        const promise = this.agentService.buildAgentMessage({
+          chatId,
+          participantId,
+          messagesSnapshot: snapshot,
+          runOpts: {
+            trigger: "mention",
+            triggeredByMessageId,
+            tagSessionIndex: sessionIndex
+          }
+        });
+        return { promise };
+      });
+      const replies = [];
+      const remaining = [...pending];
+      while (remaining.length > 0) {
+        const raced = await Promise.race(
+          remaining.map(
+            (p) => p.promise.then((msg) => ({ pending: p, msg }))
+          )
+        );
+        const idx = remaining.indexOf(raced.pending);
+        if (idx >= 0) remaining.splice(idx, 1);
+        await this.chatStore.appendMessage(chatId, raced.msg);
+        appended.push(raced.msg);
+        replies.push(raced.msg);
+        (_a = this.onMessageAppended) == null ? void 0 : _a.call(this, chatId, raced.msg);
       }
       const nextTriggers = /* @__PURE__ */ new Map();
       for (const reply of replies) {
@@ -667,6 +773,7 @@ class MentionEngine {
     }
     const paused = currentTriggers.size > 0;
     if (paused) this.pendingByChat.set(chatId, currentTriggers);
+    (_b = this.onMentionState) == null ? void 0 : _b.call(this, chatId, paused, [...currentTriggers.keys()]);
     return { appended, paused, pendingParticipantIds: [...currentTriggers.keys()] };
   }
   enqueue(chatId, fn) {
@@ -709,13 +816,24 @@ function registerIpcHandlers(opts) {
       w.webContents.send(channel, payload);
     }
   };
+  const emitMessageAppended = (chatId, message) => {
+    broadcast(IpcChannels.MessagesAppended, { chatId, message });
+  };
+  const emitMentionState = (chatId, mentionPaused, pendingMentionParticipantIds = []) => {
+    broadcast(IpcChannels.MentionState, { chatId, mentionPaused, pendingMentionParticipantIds });
+  };
   const agentService = new AgentService({
     userDataPath,
     chatStore: chatStore2,
     debugLogStore,
     onRunStatus: (evt) => broadcast(IpcChannels.AgentRunStatus, evt)
   });
-  const mentionEngine = new MentionEngine({ chatStore: chatStore2, agentService });
+  const mentionEngine = new MentionEngine({
+    chatStore: chatStore2,
+    agentService,
+    onMessageAppended: (chatId, message) => emitMessageAppended(chatId, message),
+    onMentionState: (chatId, paused, pendingParticipantIds) => emitMentionState(chatId, paused, pendingParticipantIds)
+  });
   ipcMain.handle(IpcChannels.ChatsList, async () => {
     return chatStore2.listChats();
   });
@@ -742,11 +860,16 @@ function registerIpcHandlers(opts) {
       meta: { trigger: "manual" }
     };
     await chatStore2.appendMessage(chatId, msg);
-    const auto = await mentionEngine.runFromTriggerMessage(chatId, msg, 3);
+    emitMessageAppended(chatId, msg);
+    emitMentionState(chatId, false, []);
+    mentionEngine.runFromTriggerMessage(chatId, msg, 3).catch((err) => {
+      console.error("Mention engine failed after user message", err);
+      emitMentionState(chatId, false, []);
+    });
     const result = {
-      messages: [msg, ...auto.appended],
-      mentionPaused: auto.paused,
-      pendingMentionParticipantIds: auto.pendingParticipantIds
+      messages: [msg],
+      mentionPaused: false,
+      pendingMentionParticipantIds: []
     };
     return result;
   });
@@ -755,20 +878,29 @@ function registerIpcHandlers(opts) {
   });
   ipcMain.handle(IpcChannels.AgentsRun, async (_evt, chatId, participantId, options) => {
     const msg = await agentService.runAgent(chatId, participantId, options ?? {});
-    const auto = await mentionEngine.runFromTriggerMessage(chatId, msg, 3);
+    emitMessageAppended(chatId, msg);
+    emitMentionState(chatId, false, []);
+    mentionEngine.runFromTriggerMessage(chatId, msg, 3).catch((err) => {
+      console.error("Mention engine failed after manual agent run", err);
+      emitMentionState(chatId, false, []);
+    });
     const result = {
-      messages: [msg, ...auto.appended],
-      mentionPaused: auto.paused,
-      pendingMentionParticipantIds: auto.pendingParticipantIds
+      messages: [msg],
+      mentionPaused: false,
+      pendingMentionParticipantIds: []
     };
     return result;
   });
   ipcMain.handle(IpcChannels.MentionsResume, async (_evt, chatId) => {
-    const auto = await mentionEngine.resume(chatId, 3);
+    emitMentionState(chatId, false, []);
+    mentionEngine.resume(chatId, 3).catch((err) => {
+      console.error("Mention engine failed while resuming", err);
+      emitMentionState(chatId, false, []);
+    });
     const result = {
-      messages: auto.appended,
-      mentionPaused: auto.paused,
-      pendingMentionParticipantIds: auto.pendingParticipantIds
+      messages: [],
+      mentionPaused: false,
+      pendingMentionParticipantIds: []
     };
     return result;
   });
@@ -789,6 +921,50 @@ function registerIpcHandlers(opts) {
     return res.filePaths[0] ?? null;
   });
 }
+function splitPathEntries(value) {
+  if (!value) return [];
+  return value.split(path.delimiter).map((p) => p.trim()).filter(Boolean);
+}
+function uniq(entries) {
+  return [...new Set(entries)];
+}
+function platformFallbackPaths() {
+  if (process.platform === "darwin") {
+    return ["/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"];
+  }
+  if (process.platform === "linux") {
+    return ["/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin"];
+  }
+  return [];
+}
+async function getLoginShellPath() {
+  if (process.platform === "win32") return void 0;
+  const shell = process.env.SHELL || "/bin/zsh";
+  return new Promise((resolve) => {
+    const child = spawn(shell, ["-ilc", 'printf "%s" "$PATH"'], {
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 4e3
+    });
+    let out = "";
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      out += chunk;
+    });
+    child.on("error", () => resolve(void 0));
+    child.on("close", () => {
+      const value = out.trim();
+      resolve(value || void 0);
+    });
+  });
+}
+async function initializeProcessPath() {
+  const home = process.env.HOME;
+  const fromEnv = splitPathEntries(process.env.PATH);
+  const fromShell = splitPathEntries(await getLoginShellPath());
+  const fromFallback = platformFallbackPaths();
+  const fromHome = home ? [`${home}/.local/bin`, `${home}/bin`] : [];
+  process.env.PATH = uniq([...fromEnv, ...fromShell, ...fromFallback, ...fromHome]).join(path.delimiter);
+}
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname$1, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
@@ -799,12 +975,21 @@ let win;
 let chatStore = null;
 function createWindow() {
   win = new BrowserWindow({
+    width: 1600,
+    height: 1200,
+    minWidth: 1100,
+    minHeight: 800,
+    backgroundColor: "#0b1220",
+    show: false,
     icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
     webPreferences: {
       preload: path.join(__dirname$1, "preload.mjs"),
       contextIsolation: true,
       nodeIntegration: false
     }
+  });
+  win.once("ready-to-show", () => {
+    win == null ? void 0 : win.show();
   });
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
@@ -824,6 +1009,7 @@ app.on("activate", () => {
   }
 });
 app.whenReady().then(async () => {
+  await initializeProcessPath();
   const userDataPath = app.getPath("userData");
   chatStore = new ChatStore(userDataPath);
   await chatStore.init();
