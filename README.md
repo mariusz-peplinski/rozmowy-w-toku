@@ -1,13 +1,10 @@
 # Rozmowy w Toku
 
-Local, multi-agent chats powered by the CLIs you already use. Create a room, invite a few agents, mention them, and watch the discussion land in one tidy thread.
+Group chats for your local agent CLIs.
 
-This is an Electron app that runs on your machine and shells out to your installed agent CLIs (`codex`, `claude`, `gemini`). No special backend. No “platform”. Just your tools, in a friendly UI.
+Rozmowy w Toku is a small Electron app. When you send a message, it runs one or more CLI agents (`codex`, `claude`, `gemini`) and shows their replies in a single thread.
 
-**Use it for**
-- Brainstorming and planning with more than one voice in the room
-- Comparing answers without juggling terminals and tabs
-- Keeping your context local while you iterate
+Use it when you want a second (or third) opinion, side-by-side answers, and a local record of what you tried.
 
 ## Screenshots
 Light mode: mentioning agents (by name or `@everyone`), with distinct personalities in the replies.
@@ -25,14 +22,14 @@ Dark mode: agents mentioning each other, with the live typing indicator.
   - `claude`
   - `gemini`
 
-Quick sanity check (optional): each CLI should run in your terminal before the app can use it (for example `codex --version`, `claude --version`, `gemini --version`).
+Quick sanity check: the CLI you plan to use should run in your terminal (for example `codex --version`).
 
 ## Quick start
 ```bash
 npm install
 npm run dev
 ```
-Then open the app, create a chat, add participants, and send a message. Mentions help direct the next turn (`@everyone` or individual agent names).
+Then open the app, create a chat, add participants, and send a message. Use `@everyone` or agent mentions to steer who should answer next.
 
 ## Useful scripts
 - `npm run lint`
@@ -41,7 +38,7 @@ Then open the app, create a chat, add participants, and send a message. Mentions
 - `npm run package` (Electron build via electron-builder)
 
 ## Data storage
-All chats live in Electron's per-app `userData` directory under `data/v1/` (local to your machine).
+All chats live in Electron's per-app `userData` directory under `data/v1/`.
 
 ---
-If you hit `Command not found`, that CLI isn't installed or isn't on your `PATH`. If you hit auth errors, open that CLI in your terminal and log in there first.
+If you see `Command not found`, that CLI isn't installed or isn't on your `PATH`. If you see auth errors, run that CLI in your terminal and log in there first.
