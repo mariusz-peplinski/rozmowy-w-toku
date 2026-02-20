@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { AgentType, Chat, CreateChatInput, CreateChatParticipantInput, RoamingConfig } from '../../../shared/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -77,12 +77,19 @@ export function NewChatDialog(props: {
       roamingAck: false,
     },
   ])
+  const [flashDraftId, setFlashDraftId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const roamingInvalid = useMemo(() => {
     return participants.some((p) => p.roaming.enabled && (!p.roaming.workspaceDir || !p.roamingAck))
   }, [participants])
+
+  useEffect(() => {
+    if (!flashDraftId) return
+    const t = setTimeout(() => setFlashDraftId(null), 1200)
+    return () => clearTimeout(t)
+  }, [flashDraftId])
 
   async function pickDir(i: number) {
     const picked = await window.api.dialog.pickDirectory()
@@ -151,7 +158,7 @@ export function NewChatDialog(props: {
             </div>
           ) : null}
 
-          <div className="rounded-box border border-base-300 bg-base-200 p-4 space-y-4">
+          <div className="rounded-box border border-base-300 bg-base-200 p-4 space-y-6">
             <label className="form-control w-full">
               <div className="label">
                 <span className="label-text">Title (optional)</span>
@@ -178,32 +185,38 @@ export function NewChatDialog(props: {
             </label>
           </div>
 
-          <div className="rounded-box border border-base-300 bg-base-200 p-4 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="font-semibold">Participants ({participants.length})</div>
-                <div className="text-sm opacity-70">Agents are copied into the chat when created.</div>
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  setParticipants((prev) => {
-                    const usedColors = prev.map((p) => p.colorHex)
-                    const next = defaultParticipant()
-                    next.colorHex = pickRandomColorHex(usedColors)
-                    return [next, ...prev]
-                  })
-                }}
-                disabled={creating}
-              >
-                Add agent
-              </Button>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+            <div>
+              <div className="font-semibold">Participants ({participants.length})</div>
+              <div className="text-sm opacity-70">Agents are copied into the chat when created.</div>
             </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setParticipants((prev) => {
+                  const usedColors = prev.map((p) => p.colorHex)
+                  const next = defaultParticipant()
+                  next.colorHex = pickRandomColorHex(usedColors)
+                  setFlashDraftId(next.draftId)
+                  return [next, ...prev]
+                })
+              }}
+              disabled={creating}
+            >
+              Add agent
+            </Button>
           </div>
 
           {participants.map((p, i) => (
-            <div className="card border border-base-300 bg-base-200" key={p.draftId}>
+            <div
+              className={
+                p.draftId === flashDraftId
+                  ? 'card border border-base-300 bg-base-200 participantFlash'
+                  : 'card border border-base-300 bg-base-200'
+              }
+              key={p.draftId}
+            >
               <div className="card-body p-4 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-semibold">
