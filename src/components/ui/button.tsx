@@ -3,25 +3,25 @@ import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
-const buttonVariants = cva('btn gap-2', {
+const buttonVariants = cva('btn gap-2 shadow-none', {
   variants: {
     variant: {
-      default: 'btn-neutral',
-      primary: 'btn-primary',
-      secondary: 'btn-secondary',
-      accent: 'btn-accent',
-      danger: 'btn-error',
-      success: 'btn-success',
-      outline: 'btn-outline',
+      default: 'bg-base-100 border border-base-300 hover:bg-base-200 text-base-content',
+      primary: 'btn-primary border border-primary',
+      secondary: 'btn-secondary border border-secondary',
+      accent: 'btn-accent border border-accent',
+      danger: 'btn-error border border-error',
+      success: 'btn-success border border-success',
+      outline: 'btn-outline border',
       ghost: 'btn-ghost',
       link: 'btn-link',
     },
     size: {
-      sm: 'btn-sm',
-      default: '',
-      lg: 'btn-lg',
-      xl: 'btn-lg text-lg',
-      icon: 'btn-square btn-sm',
+      sm: 'btn-sm px-3',
+      default: 'px-4',
+      lg: 'btn-lg px-6',
+      xl: 'btn-lg text-lg px-7',
+      icon: 'btn-square btn-sm p-0',
     },
   },
   defaultVariants: {

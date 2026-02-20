@@ -2,7 +2,7 @@ import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
-const textareaVariants = cva('textarea w-full min-h-[100px] border border-base-300 bg-base-100', {
+const textareaVariants = cva('textarea w-full min-h-[100px] border border-base-300 bg-base-100 p-3', {
   variants: {
     variant: {
       default: '',

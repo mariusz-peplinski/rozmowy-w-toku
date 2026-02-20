@@ -121,7 +121,7 @@ export function NewChatDialog(props: {
           <DialogTitle>New chat</DialogTitle>
         </DialogHeader>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-5">
           {error ? (
             <div className="alert alert-error">
               <div>
@@ -131,49 +131,51 @@ export function NewChatDialog(props: {
             </div>
           ) : null}
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="rounded-box border border-base-300 bg-base-200 p-4 space-y-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <label className="form-control w-full">
+                <div className="label">
+                  <span className="label-text">Title (optional)</span>
+                </div>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Refactor discussion"
+                  inputSize="default"
+                />
+              </label>
+
+              <div className="space-y-2">
+                <div className="label px-0">
+                  <span className="label-text">Participants</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setParticipants((p) => [...p, defaultParticipant()])}
+                    disabled={creating}
+                  >
+                    Add agent
+                  </Button>
+                  <span className="text-sm opacity-70">Agents are copied into the chat when created.</span>
+                </div>
+              </div>
+            </div>
+
             <label className="form-control w-full">
               <div className="label">
-                <span className="label-text">Title (optional)</span>
+                <span className="label-text">Chat context</span>
+                <span className="label-text-alt opacity-70">Shown at the top of the chat</span>
               </div>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Refactor discussion"
-                inputSize="default"
+              <Textarea
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
+                placeholder="What is this discussion about? Add constraints, goals, and relevant context here."
+                className="min-h-[120px]"
               />
             </label>
-
-            <div className="space-y-2">
-              <div className="label px-0">
-                <span className="label-text">Participants</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setParticipants((p) => [...p, defaultParticipant()])}
-                  disabled={creating}
-                >
-                  Add agent
-                </Button>
-                <span className="text-sm opacity-70">Agents are copied into the chat when created.</span>
-              </div>
-            </div>
           </div>
-
-          <label className="form-control w-full">
-            <div className="label">
-              <span className="label-text">Chat context</span>
-              <span className="label-text-alt opacity-70">Shown at the top of the chat</span>
-            </div>
-            <Textarea
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder="What is this discussion about? Add constraints, goals, and relevant context here."
-              className="min-h-[100px]"
-            />
-          </label>
 
           {participants.map((p, i) => (
             <div className="card border border-base-300 bg-base-200" key={p.draftId}>
@@ -198,7 +200,7 @@ export function NewChatDialog(props: {
                       <span className="label-text">Type</span>
                     </div>
                     <select
-                      className="select w-full border border-base-300 bg-base-100"
+                      className="select w-full border border-base-300 bg-base-100 px-3"
                       value={p.type}
                       onChange={(e) => setParticipant(i, { type: e.target.value as AgentType })}
                       disabled={creating}
@@ -319,7 +321,7 @@ export function NewChatDialog(props: {
             </div>
           ))}
 
-          <div className="modal-action">
+          <div className="modal-action gap-3">
             <Button variant="outline" size="sm" onClick={onClose} disabled={creating}>
               Cancel
             </Button>

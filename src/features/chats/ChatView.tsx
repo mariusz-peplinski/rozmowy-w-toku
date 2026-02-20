@@ -418,7 +418,7 @@ export function ChatView(props: {
         </div>
 
         <div className="mt-2 text-xs opacity-70">
-          Tip: click an agent button to ask that agent to respond.
+          Tip: click an agent button to ask that specific agent to respond.
         </div>
       </header>
 
@@ -526,12 +526,13 @@ export function ChatView(props: {
           ) : null}
 
           {mentionQuery && filteredMentionOptions.length > 0 ? (
-            <div className="rounded-box border border-base-300 bg-base-100 shadow w-full">
-              <ul className="menu menu-sm w-full max-h-56 overflow-auto">
+            <div className="rounded-box border border-base-300 bg-base-100 shadow w-full p-1">
+              <ul className="menu menu-md w-full max-h-56 overflow-auto">
                 {filteredMentionOptions.map((option, i) => (
                   <li key={option.participantId}>
                     <button
                       className={i === mentionIndex ? 'active font-semibold' : undefined}
+                      style={{ paddingBlock: '0.65rem' }}
                       onMouseDown={(e) => {
                         e.preventDefault()
                         insertMention(option)

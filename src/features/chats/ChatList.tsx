@@ -22,13 +22,13 @@ export function ChatList(props: {
       ) : null}
 
       {chats.length > 0 ? (
-        <ul className="menu menu-sm w-full rounded-box bg-base-200">
+        <ul className="menu menu-md w-full rounded-box bg-base-100 border border-base-300">
           {chats.map((c) => {
             const active = selectedChatId === c.id
             return (
               <li key={c.id}>
                 <button
-                  className={cn('w-full items-start py-3', active && 'active')}
+                  className={cn('w-full items-start py-3 rounded-btn', active && 'active')}
                   onClick={() => onSelect(c.id)}
                   title={c.title}
                 >
