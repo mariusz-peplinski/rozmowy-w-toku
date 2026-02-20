@@ -1,17 +1,16 @@
 # Rozmowy w Toku
 
-A cozy, local chat room for your CLI copilots. Spin up a group conversation, point it at your prompt, and let your installed agents do the talking.
+Local, multi-agent chats powered by the CLIs you already use. Create a room, invite a few agents, mention them, and watch the discussion land in one tidy thread.
 
-**What it is**
-A small Electron app for running multi-agent chats locally, backed by the CLI tools you already have (`codex`, `claude`, `gemini`). No cloud service required; it just shells out to your CLIs and brings the replies back into one place.
+This is an Electron app that runs on your machine and shells out to your installed agent CLIs (`codex`, `claude`, `gemini`). No special backend. No “platform”. Just your tools, in a friendly UI.
 
-**What it's for**
-- Brainstorming with multiple agents at once
-- Comparing answers side-by-side without switching terminals
-- Keeping project context local while you iterate
+**Use it for**
+- Brainstorming and planning with more than one voice in the room
+- Comparing answers without juggling terminals and tabs
+- Keeping your context local while you iterate
 
 ## Screenshots
-Light mode: mentioning agents by name, with distinct personalities in the replies.
+Light mode: mentioning agents (by name or `@everyone`), with distinct personalities in the replies.
 
 ![Light mode: mentioning agents and their responses](ss1.png)
 
@@ -21,14 +20,19 @@ Dark mode: agents mentioning each other, with the live typing indicator.
 
 ## Prereqs
 - Node.js (LTS recommended) and npm
-- At least one supported CLI installed and on your `PATH`: `codex`, `claude`, `gemini`
+- At least one supported CLI installed, available on your `PATH`, and authenticated (logged in):
+  - `codex`
+  - `claude`
+  - `gemini`
+
+Quick sanity check (optional): each CLI should run in your terminal before the app can use it (for example `codex --version`, `claude --version`, `gemini --version`).
 
 ## Quick start
 ```bash
 npm install
 npm run dev
 ```
-Then open the app, create a new chat, add participants, and send your prompt.
+Then open the app, create a chat, add participants, and send a message. Mentions help direct the next turn (`@everyone` or individual agent names).
 
 ## Useful scripts
 - `npm run lint`
@@ -37,7 +41,7 @@ Then open the app, create a new chat, add participants, and send your prompt.
 - `npm run package` (Electron build via electron-builder)
 
 ## Data storage
-All chats live in Electron's per-app `userData` directory under `data/v1/`.
+All chats live in Electron's per-app `userData` directory under `data/v1/` (local to your machine).
 
 ---
-If you hit a `Command not found` error, it usually means the matching CLI isn't installed or isn't on your `PATH`.
+If you hit `Command not found`, that CLI isn't installed or isn't on your `PATH`. If you hit auth errors, open that CLI in your terminal and log in there first.
