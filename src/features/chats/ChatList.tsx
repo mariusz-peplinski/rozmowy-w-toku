@@ -9,7 +9,7 @@ export function ChatList(props: {
   const { chats, selectedChatId, onSelect } = props
 
   return (
-    <div>
+    <div className="space-y-2">
       {chats.length === 0 ? (
         <div className="p-3">
           <div className="alert">
@@ -22,13 +22,18 @@ export function ChatList(props: {
       ) : null}
 
       {chats.length > 0 ? (
-        <ul className="menu menu-md w-full rounded-box bg-base-100 border border-base-300">
+        <ul className="space-y-2">
           {chats.map((c) => {
             const active = selectedChatId === c.id
             return (
-              <li key={c.id}>
+              <li key={c.id} className="list-none">
                 <button
-                  className={cn('w-full items-start py-3 rounded-btn', active && 'active')}
+                  className={cn(
+                    'w-full rounded-box border border-base-300 bg-base-100 p-3 text-left transition-all',
+                    'hover:bg-base-200 hover:border-base-content/25 hover:shadow',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+                    active && 'border-primary/60 bg-primary/5 shadow',
+                  )}
                   onClick={() => onSelect(c.id)}
                   title={c.title}
                 >

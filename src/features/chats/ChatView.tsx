@@ -399,9 +399,12 @@ export function ChatView(props: {
 
         <div className="mt-3 flex flex-wrap gap-2">
           {participants.map((p) => (
-            <button
+            <Button
               key={p.id}
-              className={`btn btn-sm ${typingAgents.has(p.id) ? 'btn-disabled' : 'btn-outline'}`}
+              variant="outline"
+              size="sm"
+              disabled={typingAgents.has(p.id)}
+              className="min-w-0"
               title={p.roaming.enabled ? 'Roaming enabled' : 'Run agent'}
               onClick={() => {
                 if (typingAgents.has(p.id)) return
@@ -413,7 +416,7 @@ export function ChatView(props: {
                 {typingAgents.has(p.id) ? `${p.displayName}…` : p.displayName}
               </span>
               {p.roaming.enabled ? <span className="badge badge-warning badge-sm">roam</span> : null}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -472,8 +475,8 @@ export function ChatView(props: {
                           const color = mentionColorByToken.get(fromText) || mentionColorByToken.get(fromHref) || '#f59e0b'
                           return (
                             <span
-                              className="badge badge-outline font-semibold"
-                              style={{ color, borderColor: `${color}aa`, backgroundColor: `${color}22` }}
+                              className="font-bold px-1 rounded"
+                              style={{ color, backgroundColor: `${color}1f` }}
                             >
                               {children}
                             </span>
