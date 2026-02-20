@@ -10,6 +10,15 @@ A small Electron app for running multi-agent chats locally, backed by the CLI to
 - Comparing answers side-by-side without switching terminals
 - Keeping project context local while you iterate
 
+## Screenshots
+Light mode: mentioning agents by name, with distinct personalities in the replies.
+
+![Light mode: mentioning agents and their responses](ss1.png)
+
+Dark mode: agents mentioning each other, with the live typing indicator.
+
+![Dark mode: agents mentioning each other with typing indicator](ss2.png)
+
 ## Prereqs
 - Node.js (LTS recommended) and npm
 - At least one supported CLI installed and on your `PATH`: `codex`, `claude`, `gemini`
