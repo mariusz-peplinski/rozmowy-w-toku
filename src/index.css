@@ -43,7 +43,7 @@
     filter: brightness(1.08);
   }
   .btn.btn-outline:not(.btn-disabled):not([disabled]):hover {
-    @apply bg-base-200 border-base-content/25;
+    @apply bg-base-200 border-base-content border-opacity-25;
     filter: none;
   }
   .btn.btn-ghost:not(.btn-disabled):not([disabled]):hover {

@@ -100,7 +100,10 @@ function App() {
               </div>
             </div>
           </div>
-          <div className="flex-none gap-2">
+          <div className="flex-none gap-3">
+            <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
+              New chat
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -109,9 +112,6 @@ function App() {
               onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
             >
               <ThemeIcon className="h-5 w-5" />
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
-              New chat
             </Button>
           </div>
         </div>
