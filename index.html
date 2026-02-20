@@ -1,12 +1,66 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    <title>Rozmowy w Toku</title>
+    <style>
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: #0b1220;
+        color: rgba(255, 255, 255, 0.92);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        z-index: 9999;
+      }
+      html[data-theme="light"] #boot-splash {
+        background: #ffffff;
+        color: rgba(0, 0, 0, 0.86);
+      }
+      #boot-splash .wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      #boot-splash .spinner {
+        width: 48px;
+        height: 48px;
+        border-radius: 999px;
+        border: 4px solid rgba(255, 255, 255, 0.18);
+        border-top-color: rgba(255, 255, 255, 0.9);
+        animation: bootspin 0.95s linear infinite;
+      }
+      html[data-theme="light"] #boot-splash .spinner {
+        border-color: rgba(0, 0, 0, 0.12);
+        border-top-color: rgba(0, 0, 0, 0.65);
+      }
+      #boot-splash .title {
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      #boot-splash .sub {
+        font-size: 12px;
+        opacity: 0.72;
+      }
+      @keyframes bootspin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot-splash">
+      <div class="wrap">
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="title">Rozmowy w Toku</div>
+        <div class="sub">Loading…</div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

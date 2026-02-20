@@ -1,5 +1,4 @@
 import type { ChatId, ChatIndexEntry } from '../../../shared/types'
-import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 export function ChatList(props: {
@@ -10,38 +9,46 @@ export function ChatList(props: {
   const { chats, selectedChatId, onSelect } = props
 
   return (
-    <div className="chatList">
+    <div>
       {chats.length === 0 ? (
-        <div className="emptyState" style={{ padding: 18 }}>
-          <div>
-            <div style={{ marginBottom: 8 }}>No chats yet.</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-              Create a chat to start a multi-agent conversation.
+        <div className="p-3">
+          <div className="alert">
+            <div>
+              <div className="font-semibold">No chats yet</div>
+              <div className="text-sm opacity-70">Create a chat to start a multi-agent conversation.</div>
             </div>
           </div>
         </div>
       ) : null}
 
-      {chats.map((c) => (
-        <Card
-          key={c.id}
-          variant="interactive"
-          padding="sm"
-          className={cn('chatItem', selectedChatId === c.id && 'chatItemActive')}
-          onClick={() => onSelect(c.id)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') onSelect(c.id)
-          }}
-        >
-          <p className="chatItemTitle">{c.title}</p>
-          <div className="chatItemMeta">
-            <span>{new Date(c.updatedAt).toLocaleDateString()}</span>
-            <span>{new Date(c.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          </div>
-        </Card>
-      ))}
+      {chats.length > 0 ? (
+        <ul className="menu menu-sm w-full rounded-box bg-base-200">
+          {chats.map((c) => {
+            const active = selectedChatId === c.id
+            return (
+              <li key={c.id}>
+                <button
+                  className={cn('w-full items-start py-3', active && 'active')}
+                  onClick={() => onSelect(c.id)}
+                  title={c.title}
+                >
+                  <div className="flex w-full min-w-0 flex-col gap-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium truncate">{c.title}</span>
+                      <span className="text-[11px] opacity-60 shrink-0">
+                        {new Date(c.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="text-[11px] opacity-60">
+                      {new Date(c.updatedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
     </div>
   )
 }

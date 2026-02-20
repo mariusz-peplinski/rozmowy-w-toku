@@ -7,10 +7,13 @@ import './index.css'
 const savedTheme = localStorage.getItem('theme')
 const initialTheme = savedTheme === 'light' ? 'light' : 'dark'
 document.documentElement.dataset.theme = initialTheme
-document.documentElement.classList.toggle('dark', initialTheme === 'dark')
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,
 )
+
+queueMicrotask(() => {
+  document.getElementById('boot-splash')?.remove()
+})

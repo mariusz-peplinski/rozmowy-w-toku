@@ -30,12 +30,22 @@ let chatStore: ChatStore | null = null
 
 function createWindow() {
   win = new BrowserWindow({
+    width: 1600,
+    height: 1200,
+    minWidth: 1100,
+    minHeight: 800,
+    backgroundColor: '#0b1220',
+    show: false,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
+  })
+
+  win.once('ready-to-show', () => {
+    win?.show()
   })
 
   if (VITE_DEV_SERVER_URL) {

@@ -30,7 +30,6 @@ type MentionToken = {
 type MentionSegment =
   | { kind: 'text'; value: string }
   | { kind: 'mention'; value: string }
-type MentionStyleVars = React.CSSProperties & Record<`--${string}`, string>
 
 function participantColor(chat: Chat | null, authorId: ParticipantId | 'user'): string {
   if (authorId === 'user') return '#d9dde3'
@@ -356,13 +355,13 @@ export function ChatView(props: {
 
   if (!chat) {
     return (
-      <div className="emptyState">
-        <div>
-          <div style={{ marginBottom: 8 }}>Pick a chat on the left, or create a new one.</div>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-            Agents will show up here once configured per chat.
+      <div className="h-full flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-3">
+          <div className="text-xl font-bold">Pick a chat</div>
+          <div className="text-sm opacity-70">
+            Choose a chat from the sidebar, or create a new one to start a multi-agent conversation.
           </div>
-          <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
+          <div>
             <Button variant="primary" size="sm" onClick={onOpenNewChat}>
               New chat
             </Button>
@@ -373,210 +372,235 @@ export function ChatView(props: {
   }
 
   return (
-    <>
-      <header className="mainHeader">
-        <div style={{ minWidth: 0 }}>
-          <h1 className="mainHeaderTitle">{headerTitle}</h1>
-          <div className="mainHeaderContext" title={context || undefined}>
-            {context ? context : 'No context set for this chat.'}
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="sticky top-0 z-10 border-b border-base-300 bg-base-100 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold truncate">{headerTitle}</h1>
+            <div className="mt-1 text-sm opacity-70 truncate" title={context || undefined}>
+              {context ? context : 'No context set for this chat.'}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={onEditChat} title="Edit chat context and participants">
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDebugOpen((v) => !v)}
+              title="Show provider commands and outputs"
+            >
+              {debugOpen ? 'Hide debug' : 'Debug'}
+            </Button>
           </div>
         </div>
-        <div className="participantsBar">
-          <Button variant="outline" size="sm" onClick={onEditChat} title="Edit chat context and participants">
-            Edit
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setDebugOpen((v) => !v)} title="Show provider commands and outputs">
-            {debugOpen ? 'Hide debug' : 'Debug'}
-          </Button>
+
+        <div className="mt-3 flex flex-wrap gap-2">
           {participants.map((p) => (
-            <div
+            <button
               key={p.id}
-              className={`pill ${typingAgents.has(p.id) ? 'pillDisabled' : ''}`}
+              className={`btn btn-sm ${typingAgents.has(p.id) ? 'btn-disabled' : 'btn-outline'}`}
               title={p.roaming.enabled ? 'Roaming enabled' : 'Run agent'}
-              style={{ '--dot': p.colorHex } as CssVars}
-              role="button"
-              tabIndex={0}
               onClick={() => {
                 if (typingAgents.has(p.id)) return
                 runAgent(p.id).catch(() => undefined)
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  if (typingAgents.has(p.id)) return
-                  runAgent(p.id).catch(() => undefined)
-                }
-              }}
             >
-              <span className="pillDot" />
-              <span>{typingAgents.has(p.id) ? `${p.displayName}…` : p.displayName}</span>
-            </div>
+              <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: p.colorHex } as CssVars} />
+              <span className="max-w-[14rem] truncate">
+                {typingAgents.has(p.id) ? `${p.displayName}…` : p.displayName}
+              </span>
+              {p.roaming.enabled ? <span className="badge badge-warning badge-sm">roam</span> : null}
+            </button>
           ))}
+        </div>
+
+        <div className="mt-2 text-xs opacity-70">
+          Tip: click an agent button to ask that agent to respond.
         </div>
       </header>
 
       <DebugPanel chatId={chat.id} open={debugOpen} />
 
-      <div className="timeline" ref={timelineRef}>
+      <div className="flex-1 min-h-0 overflow-auto p-4 space-y-4 bg-base-200" ref={timelineRef}>
         {loading ? (
-          <div style={{ color: 'var(--muted)' }}>Loading…</div>
+          <div className="flex items-center gap-2 opacity-70">
+            <span className="loading loading-spinner loading-sm" aria-hidden="true" />
+            <span className="text-sm">Loading…</span>
+          </div>
         ) : messages.length === 0 ? (
-          <div style={{ color: 'var(--muted)' }}>No messages yet. Say something to start.</div>
+          <div className="text-sm opacity-70">No messages yet. Say something to start.</div>
         ) : null}
 
         {messages.map((m) => {
           const dot = participantColor(chat, m.authorId)
           const isMe = m.authorKind === 'user'
           return (
-            <div
-              key={m.id}
-              className={`bubble ${isMe ? 'bubbleMe' : ''}`}
-              style={
-                m.authorKind === 'agent'
-                  ? ({
-                      background: `color-mix(in srgb, ${dot}, var(--panel) 82%)`,
-                      borderColor: `${dot}aa`,
-                    } as CssVars)
-                  : undefined
-              }
-            >
-              <div className="bubbleHeader">
-                <div className="bubbleAuthor" style={{ '--dot': dot } as CssVars}>
-                  <span className="bubbleAuthorDot" />
-                  <span>{m.authorDisplayName}</span>
-                </div>
-                <div className="bubbleRight">
-                  <button className="bubbleDelete" onClick={() => deleteMessage(m.id).catch(() => undefined)}>
-                    Delete
-                  </button>
-                  <div className="bubbleTs">{new Date(m.ts).toLocaleString()}</div>
-                </div>
-              </div>
-              <div className="bubbleText markdownBody">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm, mentionRemarkPlugin]}
-                  components={{
-                    a: ({ href, children }) => {
-                      if (href?.startsWith('mention:')) {
-                        const text = (Array.isArray(children) ? children.join('') : String(children ?? '')).trim()
-                        const fromHref = `@${href.slice('mention:'.length).trim().toLowerCase()}`
-                        const fromText = text.toLowerCase()
-                        const color = mentionColorByToken.get(fromText) || mentionColorByToken.get(fromHref) || '#f59e0b'
-                        const style: MentionStyleVars = {
-                          '--mention-ink': color,
-                          '--mention-bg': `${color}22`,
-                          '--mention-border': `${color}aa`,
-                        }
-                        return <span className="mentionTag" style={style}>{children}</span>
-                      }
-                      return (
-                        <a href={href} target="_blank" rel="noreferrer noopener">
-                          {children}
-                        </a>
-                      )
-                    },
-                    pre: ({ children }) => <pre className="mdPre">{children}</pre>,
-                    code: ({ className, children, ...props }) => (
-                      <code className={className ? `mdCode ${className}` : 'mdCode'} {...props}>
-                        {children}
-                      </code>
-                    ),
-                  }}
+            <div key={m.id} className={`chat group ${isMe ? 'chat-end' : 'chat-start'}`}>
+              <div className="chat-header flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: dot } as CssVars} />
+                  <span className="font-semibold">{m.authorDisplayName}</span>
+                </span>
+                <time className="text-[11px] opacity-60">{new Date(m.ts).toLocaleString()}</time>
+                <button
+                  className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100"
+                  onClick={() => deleteMessage(m.id).catch(() => undefined)}
                 >
-                  {m.text}
-                </ReactMarkdown>
+                  Delete
+                </button>
+              </div>
+              <div
+                className={
+                  isMe
+                    ? 'chat-bubble chat-bubble-primary'
+                    : 'chat-bubble bg-base-100 text-base-content border border-base-300 border-l-4'
+                }
+                style={!isMe ? ({ borderLeftColor: dot } as React.CSSProperties) : undefined}
+              >
+                <div className="markdownBody">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, mentionRemarkPlugin]}
+                    components={{
+                      a: ({ href, children }) => {
+                        if (href?.startsWith('mention:')) {
+                          const text = (Array.isArray(children) ? children.join('') : String(children ?? '')).trim()
+                          const fromHref = `@${href.slice('mention:'.length).trim().toLowerCase()}`
+                          const fromText = text.toLowerCase()
+                          const color = mentionColorByToken.get(fromText) || mentionColorByToken.get(fromHref) || '#f59e0b'
+                          return (
+                            <span
+                              className="badge badge-outline font-semibold"
+                              style={{ color, borderColor: `${color}aa`, backgroundColor: `${color}22` }}
+                            >
+                              {children}
+                            </span>
+                          )
+                        }
+                        return (
+                          <a href={href} className="link link-primary" target="_blank" rel="noreferrer noopener">
+                            {children}
+                          </a>
+                        )
+                      },
+                      pre: ({ children }) => (
+                        <pre className="rounded-box bg-base-300 border border-base-300 p-3 overflow-x-auto">{children}</pre>
+                      ),
+                      code: ({ className, children, ...props }) => (
+                        <code className={className ? `font-mono ${className}` : 'font-mono'} {...props}>
+                          {children}
+                        </code>
+                      ),
+                    }}
+                  >
+                    {m.text}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
           )
         })}
 
         {typingAgents.size > 0 ? (
-          <div className="typingLine">
-            <span className="typingDots" aria-hidden="true" />
-            <span style={{ color: 'var(--muted)', fontSize: 12 }}>
-              {typingAgents.size === 1 ? 'Agent is typing' : 'Agents are typing'}
-            </span>
+          <div className="flex items-center gap-2 opacity-70">
+            <span className="loading loading-dots loading-sm" aria-hidden="true" />
+            <span className="text-sm">{typingAgents.size === 1 ? 'Agent is typing' : 'Agents are typing'}…</span>
           </div>
         ) : null}
       </div>
 
-      <div className="composer">
-        {mentionPaused ? (
-          <div className="resumeBar">
-            <div style={{ color: 'var(--muted)', fontSize: 12 }}>
-              Auto replies paused (mention limit reached).
+      <div className="border-t border-base-300 bg-base-100 p-4">
+        <div className="space-y-3">
+          {mentionPaused ? (
+            <div className="alert alert-warning">
+              <div>
+                <div className="font-semibold">Auto replies paused</div>
+                <div className="text-sm">Mention limit reached.</div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => resumeMentions().catch(() => undefined)}>
+                Let them continue
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={() => resumeMentions().catch(() => undefined)}>
-              Let them continue
+          ) : null}
+
+          {mentionQuery && filteredMentionOptions.length > 0 ? (
+            <div className="rounded-box border border-base-300 bg-base-100 shadow w-full">
+              <ul className="menu menu-sm w-full max-h-56 overflow-auto">
+                {filteredMentionOptions.map((option, i) => (
+                  <li key={option.participantId}>
+                    <button
+                      className={i === mentionIndex ? 'active font-semibold' : undefined}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        insertMention(option)
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+            <Textarea
+              ref={textareaRef}
+              value={composeText}
+              placeholder="Message as you… (Shift+Enter for a new line)"
+              textareaSize="default"
+              className="h-24 min-h-24 resize-none"
+              onChange={(e) => {
+                const next = e.target.value
+                setComposeText(next)
+                const caret = e.target.selectionStart ?? next.length
+                const detected = findMentionQuery(next, caret)
+                setMentionQuery(detected)
+                setMentionIndex(0)
+              }}
+              onKeyDown={(e) => {
+                if (mentionQuery && filteredMentionOptions.length > 0) {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    setMentionIndex((prev) => (prev + 1) % filteredMentionOptions.length)
+                    return
+                  }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    setMentionIndex((prev) => (prev - 1 + filteredMentionOptions.length) % filteredMentionOptions.length)
+                    return
+                  }
+                  if (e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault()
+                    insertMention(filteredMentionOptions[mentionIndex]!)
+                    return
+                  }
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                    setMentionQuery(null)
+                    return
+                  }
+                }
+
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  sendUserMessage().catch(() => undefined)
+                }
+              }}
+            />
+            <Button
+              variant="primary"
+              size="default"
+              disabled={!composeText.trim() || sending}
+              onClick={() => sendUserMessage()}
+            >
+              {sending ? 'Sending…' : 'Send'}
             </Button>
           </div>
-        ) : null}
-
-        {mentionQuery && filteredMentionOptions.length > 0 ? (
-          <div className="mentionMenu" role="listbox" aria-label="Mention suggestions">
-            {filteredMentionOptions.map((option, i) => (
-              <button
-                key={option.participantId}
-                className={`mentionMenuItem ${i === mentionIndex ? 'mentionMenuItemActive' : ''}`}
-                onMouseDown={(e) => {
-                  e.preventDefault()
-                  insertMention(option)
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        <Textarea
-          ref={textareaRef}
-          value={composeText}
-          placeholder="Message as you… (Shift+Enter for a new line)"
-          textareaSize="default"
-          className="h-[88px] min-h-[88px] resize-none"
-          onChange={(e) => {
-            const next = e.target.value
-            setComposeText(next)
-            const caret = e.target.selectionStart ?? next.length
-            const detected = findMentionQuery(next, caret)
-            setMentionQuery(detected)
-            setMentionIndex(0)
-          }}
-          onKeyDown={(e) => {
-            if (mentionQuery && filteredMentionOptions.length > 0) {
-              if (e.key === 'ArrowDown') {
-                e.preventDefault()
-                setMentionIndex((prev) => (prev + 1) % filteredMentionOptions.length)
-                return
-              }
-              if (e.key === 'ArrowUp') {
-                e.preventDefault()
-                setMentionIndex((prev) => (prev - 1 + filteredMentionOptions.length) % filteredMentionOptions.length)
-                return
-              }
-              if (e.key === 'Enter' || e.key === 'Tab') {
-                e.preventDefault()
-                insertMention(filteredMentionOptions[mentionIndex]!)
-                return
-              }
-              if (e.key === 'Escape') {
-                e.preventDefault()
-                setMentionQuery(null)
-                return
-              }
-            }
-
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              sendUserMessage().catch(() => undefined)
-            }
-          }}
-        />
-        <Button variant="primary" size="default" disabled={!composeText.trim() || sending} onClick={() => sendUserMessage()}>
-          {sending ? 'Sending…' : 'Send'}
-        </Button>
+        </div>
       </div>
-    </>
+    </div>
   )
 }

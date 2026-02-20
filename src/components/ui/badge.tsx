@@ -1,37 +1,29 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+import * as React from 'react'
+import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from '@/lib/utils'
 
-const badgeVariants = cva(
-    [
-        "inline-flex items-center",
-        "border-2 border-black",
-        "font-bold tracking-wide",
-        "transition-colors",
-    ],
-    {
-        variants: {
-            variant: {
-                default: "bg-white text-black shadow-[2px_2px_0px_0px_#000000]",
-                primary: "bg-[#F59E0B] text-black shadow-[2px_2px_0px_0px_#000000]",
-                secondary: "bg-[#FDBA74] text-black shadow-[2px_2px_0px_0px_#000000]",
-                accent: "bg-[#FFEDD5] text-black shadow-[2px_2px_0px_0px_#000000]",
-                danger: "bg-[#EF476F] text-white shadow-[2px_2px_0px_0px_#000000]",
-                success: "bg-[#7FB069] text-black shadow-[2px_2px_0px_0px_#000000]",
-                outline: "bg-transparent text-black",
-            },
-            size: {
-                sm: "px-2 py-0.5 text-xs",
-                default: "px-3 py-1 text-sm",
-                lg: "px-4 py-1.5 text-base",
-            },
-        },
-        defaultVariants: {
-            variant: "default",
-            size: "default",
-        },
-    }
-);
+const badgeVariants = cva('badge', {
+  variants: {
+    variant: {
+      default: 'badge-neutral',
+      primary: 'badge-primary',
+      secondary: 'badge-secondary',
+      accent: 'badge-accent',
+      danger: 'badge-error',
+      success: 'badge-success',
+      outline: 'badge-outline',
+    },
+    size: {
+      sm: 'badge-sm',
+      default: 'badge-md',
+      lg: 'badge-lg',
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+    size: 'default',
+  },
+})
 
 export interface BadgeProps
     extends React.HTMLAttributes<HTMLDivElement>,

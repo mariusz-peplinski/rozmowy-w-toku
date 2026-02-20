@@ -1,4 +1,3 @@
-import './App.css'
 import { useEffect, useMemo, useState } from 'react'
 import type { Chat, ChatId, ChatIndexEntry, Message } from '../shared/types'
 import { ChatList } from './features/chats/ChatList'
@@ -6,7 +5,7 @@ import { ChatView } from './features/chats/ChatView'
 import { NewChatDialog } from './features/chats/NewChatDialog'
 import { EditChatDialog } from './features/chats/EditChatDialog'
 import { Button } from '@/components/ui/button'
-import { Moon, Sun } from 'lucide-react'
+import { Menu, Moon, Sun } from 'lucide-react'
 
 type Theme = 'dark' | 'light'
 
@@ -64,7 +63,6 @@ function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    document.documentElement.classList.toggle('dark', theme === 'dark')
     localStorage.setItem('theme', theme)
   }, [theme])
 
@@ -73,25 +71,44 @@ function App() {
   }, [])
 
   const ThemeIcon = theme === 'dark' ? Sun : Moon
+  const drawerId = 'app-drawer'
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="sidebarHeader">
-          <div className="brand">
-            <div className="brandTitle">Agents Chat</div>
-            <div className="brandSub">Local, multi-agent group chats</div>
+    <div className="drawer lg:drawer-open">
+      <input
+        id={drawerId}
+        type="checkbox"
+        className="drawer-toggle"
+        checked={mobileSidebarOpen}
+        onChange={(e) => setMobileSidebarOpen(e.target.checked)}
+      />
+
+      <div className="drawer-content flex h-screen min-h-0 flex-col overflow-hidden">
+        <div className="navbar sticky top-0 z-10 border-b border-base-300 bg-base-100">
+          <div className="flex-none lg:hidden">
+            <label htmlFor={drawerId} className="btn btn-ghost btn-square" aria-label="Open chats">
+              <Menu className="h-5 w-5" />
+            </label>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="flex-1 min-w-0">
+            <div className="min-w-0">
+              <div className="font-bold truncate">
+                {selectedIndexEntry?.title ? selectedIndexEntry.title : 'Rozmowy w Toku'}
+              </div>
+              <div className="text-xs opacity-70 truncate">
+                Local, multi-agent group chats
+              </div>
+            </div>
+          </div>
+          <div className="flex-none gap-2">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="h-8 w-8"
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
             >
-              <ThemeIcon className="h-4 w-4" />
+              <ThemeIcon className="h-5 w-5" />
             </Button>
             <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
               New chat
@@ -99,79 +116,51 @@ function App() {
           </div>
         </div>
 
-        <ChatList
-          chats={chats}
-          selectedChatId={selectedChatId}
-          onSelect={(id) => loadChat(id)}
-        />
-      </aside>
-
-      <main className="main">
-        <div className="mobileBar">
-          <Button variant="outline" size="sm" onClick={() => setMobileSidebarOpen(true)}>
-            Chats
-          </Button>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-            >
-              <ThemeIcon className="h-4 w-4" />
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
-              New chat
-            </Button>
-          </div>
-        </div>
-
-        {error ? (
-          <div className="emptyState">
-            <div>
-              <div style={{ marginBottom: 8 }}>Something went wrong.</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{error}</div>
+        <main className="flex-1 min-h-0 overflow-hidden">
+          {error ? (
+            <div className="p-4">
+              <div className="alert alert-error">
+                <div>
+                  <div className="font-semibold">Something went wrong</div>
+                  <div className="font-mono text-xs whitespace-pre-wrap">{error}</div>
+                </div>
+              </div>
             </div>
-          </div>
-        ) : (
-          <ChatView
-            indexEntry={selectedIndexEntry}
-            chat={chat}
-            messages={messages}
-            loading={loadingChat}
-            onRefresh={() => refreshChats()}
-            onMessagesChanged={(next) => setMessages(next)}
-            onOpenNewChat={() => setNewChatOpen(true)}
-            onEditChat={() => setEditChatOpen(true)}
-          />
-        )}
-      </main>
+          ) : (
+            <ChatView
+              indexEntry={selectedIndexEntry}
+              chat={chat}
+              messages={messages}
+              loading={loadingChat}
+              onRefresh={() => refreshChats()}
+              onMessagesChanged={(next) => setMessages(next)}
+              onOpenNewChat={() => setNewChatOpen(true)}
+              onEditChat={() => setEditChatOpen(true)}
+            />
+          )}
+        </main>
+      </div>
 
-      {mobileSidebarOpen ? (
-        <div className="dialogBackdrop" role="dialog" aria-modal="true">
-          <div className="dialog mobileSidebar">
-            <div className="dialogHeader">
-              <h2 className="dialogTitle">Chats</h2>
-              <Button variant="outline" size="sm" onClick={() => setMobileSidebarOpen(false)}>
-                Close
-              </Button>
-            </div>
-            <div style={{ paddingTop: 12, display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-              <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
-                New chat
-              </Button>
+      <div className="drawer-side z-20">
+        <label htmlFor={drawerId} aria-label="Close chats" className="drawer-overlay" />
+        <aside className="min-h-full w-80 border-r border-base-300 bg-base-100 flex flex-col">
+          <div className="p-4 border-b border-base-300">
+            <div className="font-bold">Chats</div>
+            <div className="text-xs opacity-70">Pick one to continue</div>
+            <div className="mt-3 flex gap-2">
               <Button variant="outline" size="sm" onClick={() => refreshChats()}>
                 Refresh
               </Button>
-            </div>
-            <div style={{ marginTop: 12 }}>
-              <ChatList chats={chats} selectedChatId={selectedChatId} onSelect={(id) => loadChat(id)} />
+              <Button variant="primary" size="sm" onClick={() => setNewChatOpen(true)}>
+                New
+              </Button>
             </div>
           </div>
-        </div>
-      ) : null}
+          <div className="p-2 flex-1 min-h-0 overflow-y-auto">
+            <ChatList chats={chats} selectedChatId={selectedChatId} onSelect={(id) => loadChat(id)} />
+          </div>
+        </aside>
+      </div>
 
       {newChatOpen ? (
         <NewChatDialog
