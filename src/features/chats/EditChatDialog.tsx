@@ -12,6 +12,26 @@ import {
 
 type DraftParticipant = Participant & { draftId: string; roamingAck: boolean }
 
+const colorPalette = [
+  '#74d6ff',
+  '#ffcc00',
+  '#a78bfa',
+  '#34d399',
+  '#fb7185',
+  '#60a5fa',
+  '#f97316',
+  '#22c55e',
+  '#e879f9',
+  '#fda4af',
+] as const
+
+function pickRandomColorHex(usedColors: string[]): string {
+  const used = new Set(usedColors.map((c) => c.toLowerCase()))
+  const available = colorPalette.filter((c) => !used.has(c.toLowerCase()))
+  const pool = available.length > 0 ? available : colorPalette
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
 function newDraftId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
   return `draft_${Math.random().toString(16).slice(2)}_${Date.now()}`
@@ -135,31 +155,12 @@ export function EditChatDialog(props: {
           ) : null}
 
           <div className="rounded-box border border-base-300 bg-base-200 p-4 space-y-4">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <label className="form-control w-full">
-                <div className="label">
-                  <span className="label-text">Title</span>
-                </div>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={saving} />
-              </label>
-
-              <div className="space-y-2">
-                <div className="label px-0">
-                  <span className="label-text">Participants</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setParticipants((p) => [...p, defaultNewParticipant()])}
-                    disabled={saving}
-                  >
-                    Add agent
-                  </Button>
-                  <span className="text-sm opacity-70">Removing agents may make old messages lose their color.</span>
-                </div>
+            <label className="form-control w-full">
+              <div className="label">
+                <span className="label-text">Title</span>
               </div>
-            </div>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={saving} />
+            </label>
 
             <label className="form-control w-full">
               <div className="label">
@@ -173,6 +174,30 @@ export function EditChatDialog(props: {
                 className="min-h-[120px]"
               />
             </label>
+          </div>
+
+          <div className="rounded-box border border-base-300 bg-base-200 p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="font-semibold">Participants ({participants.length})</div>
+                <div className="text-sm opacity-70">Removing agents may make old messages lose their color.</div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setParticipants((prev) => {
+                    const usedColors = prev.map((p) => p.colorHex)
+                    const next = defaultNewParticipant()
+                    next.colorHex = pickRandomColorHex(usedColors)
+                    return [next, ...prev]
+                  })
+                }}
+                disabled={saving}
+              >
+                Add agent
+              </Button>
+            </div>
           </div>
 
           {participants.map((p, i) => (
